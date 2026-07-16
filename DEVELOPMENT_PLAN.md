@@ -36,7 +36,7 @@ The reviews also identified two issues that receive first-class implementation a
 ## 3. Scope and assumptions
 
 - Online cooperative play supports exactly two active player seats per room.
-- A host may start a solo-practice day, but the intended experience is two players. Solo days use an authored 0.62 arrival-rate multiplier and are validated separately so all 50 levels remain passable without pretending one player has two-player throughput.
+- A host may start a solo-practice day, but the intended experience is two players. Solo days use an authored 0.5 arrival-rate multiplier and are validated separately so all 50 levels remain passable without pretending one player has two-player throughput.
 - Players are symmetric and can perform every action.
 - The server is authoritative for all game rules, timers, inventory, scoring, and progression changes.
 - The web client and Android app contain presentation and input only; neither can award resources or complete actions locally.
