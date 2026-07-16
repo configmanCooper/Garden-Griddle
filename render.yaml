@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: garden-and-griddle
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PUBLIC_URL
+        value: "https://garden-and-griddle.onrender.com"
+      - key: ALLOWED_ORIGINS
+        value: "https://garden-and-griddle.onrender.com,https://localhost"
+

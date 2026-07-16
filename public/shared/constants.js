@@ -66,6 +66,29 @@
     CANCEL_TASK: 'cancelTask'
   };
 
+  const EVENTS = {
+    CREATE_ROOM: 'create_room',
+    JOIN_ROOM: 'join_room',
+    START_DAY: 'start_day',
+    SUBMIT_ACTION: 'submit_action',
+    BUY_UPGRADE: 'buy_upgrade',
+    PAUSE_REQUEST: 'pause_request',
+    PAUSE_VOTE: 'pause_vote',
+    REQUEST_SNAPSHOT: 'request_snapshot',
+    PING: 'quick_ping',
+    SESSION: 'session',
+    ROOM_UPDATE: 'room_update',
+    DAY_STARTED: 'day_started',
+    SNAPSHOT: 'state_snapshot',
+    ACTION_RESULT: 'action_result',
+    DAY_ENDED: 'day_ended',
+    CAMPAIGN_UPDATE: 'campaign_update',
+    PAUSE_UPDATE: 'pause_update',
+    PARTNER_PING: 'partner_ping',
+    ERROR: 'error_message',
+    ROOM_ABORTED: 'room_aborted'
+  };
+
   return {
     PROTOCOL,
     CLIENT_BUILD,
@@ -76,7 +99,8 @@
     RECIPES,
     RECIPE_BY_ID,
     UPGRADE_IDS,
-    ACTIONS
+    ACTIONS,
+    EVENTS
   };
 });
 
