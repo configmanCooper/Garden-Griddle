@@ -11,14 +11,25 @@
     "test:core": "node test/core.test.js",
     "test:server": "node test/server.test.js",
     "test:browser": "node test/browser.test.cjs",
-    "test:progression": "node test/progression.test.js"
+    "test:progression": "node test/progression.test.js",
+    "android:assets": "node gen-store-assets.cjs && capacitor-assets generate --android --iconBackgroundColor '#493224' --splashBackgroundColor '#493224'",
+    "android:screenshots": "node gen-play-screenshots.cjs",
+    "android:sync": "powershell -ExecutionPolicy Bypass -File ./sync-android.ps1",
+    "android:build": "powershell -ExecutionPolicy Bypass -File ./build-android.ps1"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/share": "^6.0.2",
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.1",
     "playwright-core": "^1.61.1",
+    "sharp": "^0.33.5",
     "socket.io-client": "^4.8.1"
   },
   "license": "UNLICENSED"

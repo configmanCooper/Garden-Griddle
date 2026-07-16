@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.configmancooper.gardenandgriddle",
+      "sha256_cert_fingerprints": [
+        "45:F0:F6:7A:92:1A:6C:82:88:45:87:6E:2C:53:A9:25:E0:5F:9E:60:0B:89:4D:A1:66:A1:19:85:F1:5F:92:6A"
+      ]
+    }
+  }
+]

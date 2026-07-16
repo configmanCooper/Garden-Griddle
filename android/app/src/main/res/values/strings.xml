@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Garden &amp; Griddle</string>
+    <string name="title_activity_main">Garden &amp; Griddle</string>
+    <string name="package_name">com.configmancooper.gardenandgriddle</string>
+    <string name="custom_url_scheme">com.configmancooper.gardenandgriddle</string>
+</resources>

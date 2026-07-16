@@ -40,6 +40,15 @@ class Game {
       if (event.code === 'Escape') this.clearSelection();
       if (event.code === 'Space' && this.state.screen === 'game') this.pause();
     });
+    const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (appPlugin && appPlugin.addListener) {
+      appPlugin.addListener('appUrlOpen', ({ url }) => this.handleInviteUrl(url));
+      if (appPlugin.getLaunchUrl) {
+        appPlugin.getLaunchUrl().then((result) => {
+          if (result && result.url) this.handleInviteUrl(result.url);
+        }).catch(() => {});
+      }
+    }
   }
 
   bindNetwork() {
@@ -137,6 +146,18 @@ class Game {
     return code ? { code, inviteToken } : null;
   }
 
+  handleInviteUrl(url) {
+    try {
+      const parsed = new URL(url);
+      const match = parsed.pathname.match(/\/join\/([A-Z0-9]{6})/i);
+      if (!match) return;
+      this.pendingInvite = { code: match[1].toUpperCase(), inviteToken: parsed.searchParams.get('invite') || '' };
+      document.getElementById('room-code-input').value = this.pendingInvite.code;
+      this.ui.show('title');
+      this.ui.toast('Invitation ready - tap Join.');
+    } catch (_error) {}
+  }
+
   playerName() {
     const name = document.getElementById('player-name').value.trim() || 'Player';
     this.save.playerName = name;
@@ -184,7 +205,9 @@ class Game {
     if (!this.state.session) return;
     const text = 'Join my Garden & Griddle restaurant: ' + this.state.session.inviteUrl;
     try {
-      if (navigator.share) await navigator.share({ title: 'Garden & Griddle', text, url: this.state.session.inviteUrl });
+      const nativeShare = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+      if (nativeShare && nativeShare.share) await nativeShare.share({ title: 'Garden & Griddle', text, url: this.state.session.inviteUrl, dialogTitle: 'Invite your partner' });
+      else if (navigator.share) await navigator.share({ title: 'Garden & Griddle', text, url: this.state.session.inviteUrl });
       else {
         await navigator.clipboard.writeText(this.state.session.inviteUrl);
         this.ui.toast('Invite link copied!');

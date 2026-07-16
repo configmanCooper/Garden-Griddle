@@ -1,0 +1,16 @@
+{
+  "appId": "com.configmancooper.gardenandgriddle",
+  "appName": "Garden & Griddle",
+  "webDir": "public",
+  "android": {
+    "backgroundColor": "#493224",
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "garden-and-griddle.onrender.com"
+    ]
+  }
+}
+

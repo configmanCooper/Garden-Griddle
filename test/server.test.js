@@ -49,6 +49,14 @@ async function run() {
   const url = 'http://127.0.0.1:' + port;
   const sockets = [];
   try {
+    const health = await fetch(url + '/health');
+    assert.strictEqual(health.status, 200);
+    const privacy = await fetch(url + '/privacy.html');
+    assert.strictEqual(privacy.status, 200);
+    const assetLinks = await fetch(url + '/.well-known/assetlinks.json');
+    assert.strictEqual(assetLinks.status, 200);
+    assert.match(assetLinks.headers.get('content-type'), /application\/json/);
+
     const bad = client(url, { protocol: 999 });
     sockets.push(bad);
     const mismatch = await once(bad, 'connect_error');

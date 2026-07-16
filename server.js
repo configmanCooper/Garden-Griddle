@@ -41,6 +41,9 @@ function createGameServer(options) {
     next();
   });
   app.get('/health', (_req, res) => res.json({ ok: true, rooms: rooms.rooms.size, build: C.CLIENT_BUILD }));
+  app.get('/.well-known/assetlinks.json', (_req, res) => {
+    res.type('application/json').sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
+  });
   app.get('/join/:code', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.use(express.static(path.join(__dirname, 'public')));
 
