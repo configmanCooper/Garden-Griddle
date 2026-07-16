@@ -20,7 +20,8 @@
   const EPS = 0.000001;
 
   function event(state, type, data) {
-    state.events.push(Object.assign({ id: 'ev-' + state.tick + '-' + state.events.length, type, at: state.elapsed }, data || {}));
+    state.eventSerial += 1;
+    state.events.push(Object.assign({ id: 'ev-' + state.eventSerial, type, at: state.elapsed }, data || {}));
     if (state.events.length > 60) state.events.splice(0, state.events.length - 60);
   }
 
@@ -95,6 +96,7 @@
       const stove = stoveOf(state, player.task.targetId);
       const order = stove && orderOf(state, stove.orderId);
       if (order && order.status === 'serving') order.status = 'ready';
+      if (stove && stove.state === 'serving') stove.state = 'ready';
     }
     releaseTaskLock(state, player);
     event(state, 'taskCancelled', { playerId, kind: player.task.kind, reason: reason || 'cancelled' });
@@ -220,6 +222,7 @@
         if (!order || order.status !== 'ready') return fail('That customer is no longer waiting.', 'state');
         stove.lockedBy = playerId;
         order.status = 'serving';
+        stove.state = 'serving';
         const started = startTask(state, player, 'serve', state.effects.serveSeconds, 'stove', stove.id);
         if (!started.ok) {
           order.status = 'ready';
@@ -285,7 +288,7 @@
     } else if (task.kind === 'serve') {
       const stove = stoveOf(state, task.targetId);
       const order = stove && orderOf(state, stove.orderId);
-      if (stove && order && stove.lockedBy === player.id && stove.state === 'ready' && order.status === 'serving') {
+      if (stove && order && stove.lockedBy === player.id && stove.state === 'serving' && order.status === 'serving') {
         const patienceLeft = Math.max(0, order.expiresAt - state.elapsed);
         order.status = 'eating';
         order.servedAt = state.elapsed;
@@ -353,7 +356,7 @@
   }
 
   function missOrder(state, order, reason) {
-    if (!['waiting', 'cooking', 'ready'].includes(order.status)) return;
+    if (!['waiting', 'cooking', 'ready', 'serving'].includes(order.status)) return;
     order.status = 'missed';
     order.missedAt = state.elapsed;
     order.missReason = reason;

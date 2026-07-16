@@ -117,6 +117,7 @@
       nextOrderAt: level.prepSeconds,
       orderSerial: 0,
       randomSerial: 0,
+      eventSerial: 0,
       stats: { spawned: 0, served: 0, missed: 0, burnt: 0, waste: 0, coins: 0, tips: 0 },
       events: [],
       result: null

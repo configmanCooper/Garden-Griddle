@@ -26,6 +26,10 @@
             <input id="room-code-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ROOM CODE">
             <button id="join-room" class="btn">Join</button>
           </div>
+          <div class="utility-actions">
+            <button id="open-help-title" class="btn small">How to Play</button>
+            <button id="open-settings-title" class="btn small">Settings</button>
+          </div>
         </div>
         <details class="server-settings">
           <summary>Server connection</summary>
@@ -48,6 +52,7 @@
           <div class="header-actions">
             <button id="share-room" class="btn small">Share invite</button>
             <button id="open-shop" class="btn small">Upgrades</button>
+            <button id="open-settings-room" class="btn small">Settings</button>
           </div>
         </header>
         <div id="player-list" class="player-list"></div>
@@ -77,6 +82,7 @@
           <span id="connection-dot" class="connection-dot"></span>
           <div><strong id="partner-name">Partner</strong><small id="partner-status">Connected</small></div>
           <button id="pause-game" class="icon-btn" aria-label="Pause">II</button>
+          <button id="open-help-game" class="icon-btn" aria-label="How to play">?</button>
         </div>
       </header>
 
@@ -126,7 +132,35 @@
     </div>
   </div>
 
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card settings-card">
+      <h2>Settings</h2>
+      <label><span>Sound effects</span><input id="setting-sfx" type="checkbox"></label>
+      <label><span>Vibration</span><input id="setting-vibration" type="checkbox"></label>
+      <label><span>Reduced motion</span><input id="setting-reduced-motion" type="checkbox"></label>
+      <label><span>High contrast</span><input id="setting-high-contrast" type="checkbox"></label>
+      <button class="btn modal-close">Close</button>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card help-card">
+      <h2>How to Play</h2>
+      <ol>
+        <li>Tap an empty garden plot to plant one of six crops.</li>
+        <li>Pick up the blue pail, then hold a dry crop to water it.</li>
+        <li>Harvest ripe crops; ingredients go straight to the shared fridge.</li>
+        <li>Tap the cow for milk and the bowl to mix ten-crepe batter.</li>
+        <li>Select an order ticket, then tap an empty stovetop.</li>
+        <li>Tap a green ready stove to serve before the customer leaves.</li>
+      </ol>
+      <p>Both players can do every job. Use quick pings to divide the work.</p>
+      <button class="btn modal-close">Got it</button>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
+  <div id="debug-overlay" class="debug-overlay hidden"></div>
   <div id="rotate-gate"><div><strong>Turn your phone sideways</strong><span>Garden &amp; Griddle is designed for landscape play.</span></div></div>
   <div id="unsupported" class="unsupported hidden"><h1>WebGL2 is needed</h1><p>Please update Android System WebView or use a newer browser.</p></div>
 

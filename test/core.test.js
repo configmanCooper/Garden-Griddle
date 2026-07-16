@@ -124,6 +124,7 @@ function testBatterAndStoves() {
   equal(state.stoves.filter((stove) => stove.state === 'cooking').length, 3, 'All three stoves cook at once.');
   complete(state, state.effects.cookSeconds + 0.01);
   equal(state.stoves.filter((stove) => stove.state === 'ready').length, 3, 'All stoves become ready.');
+  equal(new Set(state.events.map((event) => event.id)).size, state.events.length, 'Simultaneous events keep unique IDs.');
   truthy(Sim.applyAction(state, 'p1', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).ok, 'Ready crepe can be served.');
   equal(Sim.applyAction(state, 'p2', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).code, 'taken', 'Serve race has one winner.');
   complete(state, state.effects.serveSeconds + 0.01);
@@ -160,6 +161,22 @@ function testCommittedServeBeatsPatience() {
   complete(state, state.effects.serveSeconds + 0.01);
   equal(order.status, 'eating', 'A committed serve is honored after patience reaches zero.');
   equal(state.stats.served, 1, 'Committed serve counts as served.');
+}
+
+function testCommittedServeBeatsBurnTimer() {
+  const state = fresh({ prepSeconds: 0 });
+  state.batter = 1;
+  for (const key of Object.keys(state.fridge)) state.fridge[key] = 10;
+  complete(state, 0.1);
+  const order = state.orders[0];
+  Sim.applyAction(state, 'p1', C.ACTIONS.START_CREPE, { stoveId: 'stove-1', orderId: order.id });
+  complete(state, state.effects.cookSeconds + 0.01);
+  state.stoves[0].burnAt = state.elapsed + state.effects.serveSeconds / 2;
+  truthy(Sim.applyAction(state, 'p2', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).ok, 'Serve commits before the burn deadline.');
+  complete(state, state.effects.serveSeconds + 0.01);
+  equal(order.status, 'eating', 'A committed serve cannot orphan the order at the burn deadline.');
+  equal(state.stats.served, 1, 'Committed serve is credited.');
+  equal(state.stoves[0].state, 'empty', 'Committed serve clears the stove.');
 }
 
 function testStarsAndCampaign() {
@@ -220,6 +237,7 @@ testCow();
 testBatterAndStoves();
 testBurnAndClear();
 testCommittedServeBeatsPatience();
+testCommittedServeBeatsBurnTimer();
 testStarsAndCampaign();
 testUpgrades();
 testDeterminism();

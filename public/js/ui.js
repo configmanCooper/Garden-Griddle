@@ -27,10 +27,18 @@ export class UI {
     byId('level-select').oninput = () => this.updateSelectedLevel();
     byId('share-room').onclick = () => this.game.shareRoom();
     byId('open-shop').onclick = () => this.showShop();
+    byId('open-settings-title').onclick = () => this.showSettings();
+    byId('open-settings-room').onclick = () => this.showSettings();
+    byId('open-help-title').onclick = () => byId('help-modal').classList.remove('hidden');
+    byId('open-help-game').onclick = () => byId('help-modal').classList.remove('hidden');
     byId('results-shop').onclick = () => this.showShop();
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
     byId('held-item').onclick = () => this.game.dropHeldItem();
+    byId('setting-sfx').onchange = (event) => this.game.updateSetting('sfx', event.target.checked);
+    byId('setting-vibration').onchange = (event) => this.game.updateSetting('vibration', event.target.checked);
+    byId('setting-reduced-motion').onchange = (event) => this.game.updateSetting('reducedMotion', event.target.checked);
+    byId('setting-high-contrast').onchange = (event) => this.game.updateSetting('highContrast', event.target.checked);
     document.querySelectorAll('[data-ping]').forEach((button) => {
       button.onclick = () => this.game.ping(button.dataset.ping);
     });
@@ -240,6 +248,22 @@ export class UI {
     const campaign = this.game.state.room ? this.game.state.room.campaign : this.game.save.campaign;
     this.renderShop(campaign);
     byId('shop-modal').classList.remove('hidden');
+  }
+
+  showSettings() {
+    const settings = this.game.save.settings;
+    byId('setting-sfx').checked = settings.sfx !== false;
+    byId('setting-vibration').checked = settings.vibration !== false;
+    byId('setting-reduced-motion').checked = !!settings.reducedMotion;
+    byId('setting-high-contrast').checked = !!settings.highContrast;
+    byId('settings-modal').classList.remove('hidden');
+  }
+
+  closeTopModal() {
+    const modal = [...document.querySelectorAll('.modal:not(.hidden)')].pop();
+    if (!modal) return false;
+    modal.classList.add('hidden');
+    return true;
   }
 
   renderShop(campaign) {

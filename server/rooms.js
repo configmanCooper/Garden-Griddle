@@ -185,6 +185,7 @@ class RoomManager {
       lastSeq: 0,
       actionResults: new Map(),
       lastSnapshotRequestAt: 0,
+      lastPingAt: 0,
       rate: { tokens: ACTION_BURST, updatedAt: Date.now() }
     };
     room.players.set(pid, player);
@@ -431,8 +432,11 @@ class RoomManager {
   ping(socket, payload) {
     const context = this.context(socket);
     if (!context) return;
+    const now = Date.now();
+    if (now - context.player.lastPingAt < 750) return;
+    context.player.lastPingAt = now;
     const kind = ['garden', 'cook', 'milk', 'rush'].includes(payload && payload.kind) ? payload.kind : 'rush';
-    socket.to(context.room.code).emit(C.EVENTS.PARTNER_PING, { playerId: context.player.id, kind, at: Date.now() });
+    socket.to(context.room.code).emit(C.EVENTS.PARTNER_PING, { playerId: context.player.id, kind, at: now });
   }
 
   requestSnapshot(socket) {

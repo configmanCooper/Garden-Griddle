@@ -23,18 +23,52 @@ class Game {
       if (error.message === 'WEBGL2_UNAVAILABLE') document.getElementById('unsupported').classList.remove('hidden');
       throw error;
     }
+    this.applySettings();
     this.input = new Input(document.getElementById('game-canvas'), this.render, this);
     this.bindNetwork();
     this.bindGlobal();
     this.lastSnapshotEventCount = 0;
+    this.seenEventIds = new Set();
+    this.graphicsLost = false;
+    this.debugEnabled = new URLSearchParams(location.search).get('debug') === '1';
+    document.getElementById('debug-overlay').classList.toggle('hidden', !this.debugEnabled);
+    this.lastDebugAt = 0;
     window.game = this;
     requestAnimationFrame((time) => this.loop(time));
+  }
+
+  handleBack(appPlugin) {
+    if (this.ui.closeTopModal()) return;
+    if (this.state.screen === 'game') {
+      this.pause();
+      return;
+    }
+    if (this.state.screen === 'results') {
+      this.ui.show('room');
+      return;
+    }
+    if (this.state.screen === 'room') {
+      if (appPlugin && appPlugin.minimizeApp) appPlugin.minimizeApp();
+      return;
+    }
+    if (appPlugin && appPlugin.minimizeApp) appPlugin.minimizeApp();
   }
 
   bindGlobal() {
     window.addEventListener('pointerdown', () => Audio.unlock(), { once: true });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && this.state.screen === 'game') this.net.requestSnapshot();
+    });
+    const canvas = document.getElementById('game-canvas');
+    canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      this.graphicsLost = true;
+      this.ui.toast('Graphics paused - restoring...', true);
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      this.graphicsLost = false;
+      this.net.requestSnapshot();
+      this.ui.toast('Graphics restored.');
     });
     window.addEventListener('keydown', (event) => {
       if (event.code === 'Escape') this.clearSelection();
@@ -48,20 +82,30 @@ class Game {
           if (result && result.url) this.handleInviteUrl(result.url);
         }).catch(() => {});
       }
+      appPlugin.addListener('backButton', () => this.handleBack(appPlugin));
     }
   }
 
   bindNetwork() {
-    this.net.on('status', (status) => {
+    this.net.on('status', async (status) => {
       this.state.connected = status.state === 'connected';
       if (status.state !== 'connected' && this.state.session) this.state.rejoining = true;
       this.ui.setConnection(status);
       if (status.state === 'connected' && this.state.session) {
-        this.net.join(this.state.session.code, this.save.playerName, this.state.session.inviteToken);
+        const result = await this.net.join(this.state.session.code, this.save.playerName, this.state.session.inviteToken);
+        if (!result.ok) {
+          this.state.session = null;
+          this.state.room = null;
+          this.state.snapshot = null;
+          this.state.rejoining = false;
+          this.ui.show('title');
+          this.ui.toast(result.reason || 'The previous room is no longer available.', true);
+        }
       }
     });
     this.net.on(C.EVENTS.SESSION, (session) => {
       this.state.session = session;
+      this.pendingInvite = null;
       this.net.setSequence(session.lastSeq);
       Save.storeSession(session.code, session.sessionToken);
       this.syncCampaign(session.campaign);
@@ -85,11 +129,10 @@ class Game {
         const selected = snapshot.orders.find((order) => order.id === this.state.selectedOrderId);
         if (!selected || selected.status !== 'waiting') this.state.selectedOrderId = null;
       }
-      const priorEvents = this.state.snapshot ? this.state.snapshot.events.length : 0;
       this.state.snapshot = snapshot;
       this.state.rejoining = false;
       this.ui.updateSnapshot(snapshot, this.state);
-      this.playNewEvents(snapshot, priorEvents);
+      this.playNewEvents(snapshot);
     });
     this.net.on(C.EVENTS.ACTION_RESULT, (result) => {
       this.state.lastActionResult = result;
@@ -127,9 +170,12 @@ class Game {
     });
   }
 
-  playNewEvents(snapshot, previousLength) {
+  playNewEvents(snapshot) {
     const events = snapshot.events || [];
-    for (const event of events.slice(Math.max(0, previousLength))) {
+    for (const event of events) {
+      if (this.seenEventIds.has(event.id)) continue;
+      this.seenEventIds.add(event.id);
+      if (this.seenEventIds.size > 200) this.seenEventIds.delete(this.seenEventIds.values().next().value);
       if (event.type === 'cropReady' || event.type === 'crepeReady') Audio.sfx.ready();
       else if (event.type === 'harvested') Audio.sfx.harvest();
       else if (event.type === 'milked') Audio.sfx.milk();
@@ -151,7 +197,13 @@ class Game {
       const parsed = new URL(url);
       const match = parsed.pathname.match(/\/join\/([A-Z0-9]{6})/i);
       if (!match) return;
-      this.pendingInvite = { code: match[1].toUpperCase(), inviteToken: parsed.searchParams.get('invite') || '' };
+      const code = match[1].toUpperCase();
+      if (this.state.session) {
+        if (this.state.session.code === code) this.ui.show('room');
+        else this.ui.toast('You are already in a restaurant room.', true);
+        return;
+      }
+      this.pendingInvite = { code, inviteToken: parsed.searchParams.get('invite') || '' };
       document.getElementById('room-code-input').value = this.pendingInvite.code;
       this.ui.show('title');
       this.ui.toast('Invitation ready - tap Join.');
@@ -219,6 +271,19 @@ class Game {
     if (!campaign) return;
     this.save.campaign = Save.acceptCampaign(this.save.campaign, campaign);
     Save.write(this.save);
+  }
+
+  updateSetting(key, value) {
+    this.save.settings[key] = value;
+    Save.write(this.save);
+    this.applySettings();
+  }
+
+  applySettings() {
+    Audio.configure(this.save.settings);
+    document.body.classList.toggle('reduced-motion', !!this.save.settings.reducedMotion);
+    document.body.classList.toggle('high-contrast', !!this.save.settings.highContrast);
+    if (this.render) this.render.setReducedMotion(this.save.settings.reducedMotion);
   }
 
   isPlaying() {
@@ -320,7 +385,13 @@ class Game {
 
   loop(time) {
     if (this.state.snapshot) this.render.update(this.state.snapshot, this.state.session);
-    this.render.render(time);
+    if (!this.graphicsLost) this.render.render(time);
+    if (this.debugEnabled && time - this.lastDebugAt > 500) {
+      this.lastDebugAt = time;
+      const metrics = this.render.metrics();
+      document.getElementById('debug-overlay').textContent = Math.round(metrics.fps) + ' FPS | ' + metrics.calls + ' calls | '
+        + metrics.triangles + ' tris | ' + metrics.geometries + ' geo';
+    }
     requestAnimationFrame((next) => this.loop(next));
   }
 }

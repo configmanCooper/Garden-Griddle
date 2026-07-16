@@ -205,6 +205,11 @@ async function run() {
     assert.strictEqual(rejoined.reconnected, true);
     const rotated = await rotatedSessionPromise;
     assert.notStrictEqual(rotated.sessionToken, oldGuestToken, 'Reconnect token rotates.');
+    let pingCount = 0;
+    reconnect.on(C.EVENTS.PARTNER_PING, () => { pingCount += 1; });
+    for (let index = 0; index < 8; index += 1) host.emit(C.EVENTS.PING, { kind: 'rush' });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.strictEqual(pingCount, 1, 'Quick pings are throttled.');
     assert.ok(room.state.players[guestSession.playerId], 'Reconnecting player is restored to a solo-started active day.');
     const guestDayTwoAction = await emitAck(reconnect, C.EVENTS.SUBMIT_ACTION, {
       seq: 1,

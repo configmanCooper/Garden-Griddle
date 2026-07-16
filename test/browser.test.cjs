@@ -47,13 +47,23 @@ async function clickTarget(page, type, id, holdMs) {
   const guest = await guestContext.newPage();
   const errors = [];
   for (const page of [host, guest]) {
-    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('pageerror', (error) => {
+      errors.push(error.message);
+      console.error('PAGEERROR', error.message);
+    });
   }
 
   try {
     await host.goto(url, { waitUntil: 'load' });
     await host.waitForFunction(() => window.game && window.game.render);
     await host.waitForFunction(() => window.game.state.connected);
+    await host.click('#open-settings-title');
+    await host.check('#setting-reduced-motion');
+    assert.strictEqual(await host.evaluate(() => document.body.classList.contains('reduced-motion') && window.game.render.reducedMotion), true);
+    await host.click('#settings-modal .modal-close');
+    await host.click('#open-help-title');
+    await host.waitForSelector('#help-modal:not(.hidden)');
+    await host.click('#help-modal .modal-close');
     await host.fill('#player-name', 'Host');
     await host.click('#create-room');
     await host.waitForSelector('#screen-room.active');
@@ -111,6 +121,13 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'ready');
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stats.served >= 1);
+    await host.evaluate(() => {
+      const canvas = document.getElementById('game-canvas');
+      canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));
+    });
+    assert.strictEqual(await host.evaluate(() => window.game.graphicsLost), true);
+    await host.evaluate(() => document.getElementById('game-canvas').dispatchEvent(new Event('webglcontextrestored')));
+    assert.strictEqual(await host.evaluate(() => window.game.graphicsLost), false);
 
     await guest.evaluate(() => window.game.render.panBy(100, 0));
     const cameraState = await Promise.all([
@@ -192,6 +209,15 @@ async function clickTarget(page, type, id, holdMs) {
     const peakMetrics = await host.evaluate(() => window.game.render.metrics());
     assert.ok(peakMetrics.calls < 120, 'Worst-case draw calls stay under the planned budget: ' + peakMetrics.calls);
     assert.ok(peakMetrics.triangles < 250000, 'Worst-case triangles stay under the planned budget: ' + peakMetrics.triangles);
+    const toppingAtlasActive = await host.evaluate(() => {
+      return [...window.game.render.stoveViews.values()].every((view) => view.crepe.material.map && view.crepe.material.map.image.width > 0);
+    });
+    assert.strictEqual(toppingAtlasActive, true, 'Topping atlas textures are active.');
+
+    room.expiresAt = Date.now() - 1;
+    await host.evaluate(() => window.game.net.socket.disconnect());
+    await host.evaluate(() => window.game.net.socket.connect());
+    await host.waitForFunction(() => window.game.state.screen === 'title' && !window.game.state.rejoining);
     assert.deepStrictEqual(errors, []);
     console.log('browser tests: two-client touch workflow, convergence, rejection recovery, graphics budgets passed');
   } finally {

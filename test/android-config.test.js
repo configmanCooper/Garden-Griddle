@@ -41,6 +41,7 @@ for (const file of [
 const assetLinks = read('public/.well-known/assetlinks.json');
 assert.doesNotMatch(assetLinks, /PLAY_SIGNING_SHA256/);
 assert.match(assetLinks, /(?:[A-F0-9]{2}:){31}[A-F0-9]{2}/);
-assert.doesNotMatch(read('setup-android.ps1'), /gardenandgriddle2026/);
+assert.match(read('setup-android.ps1'), /GG_KEYSTORE_PASSWORD/);
+assert.match(read('setup-android.ps1'), /Read-Host.+-AsSecureString/);
 
 console.log('android config tests: package, API 36, HTTPS, landscape, App Links passed');

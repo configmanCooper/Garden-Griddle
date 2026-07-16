@@ -1,8 +1,10 @@
 let context = null;
 let enabled = true;
+let vibrationEnabled = true;
 
 export function configure(settings) {
   enabled = settings.sfx !== false;
+  vibrationEnabled = settings.vibration !== false;
 }
 
 export function unlock() {
@@ -44,6 +46,5 @@ export const sfx = {
 };
 
 export function vibrate(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
+  if (vibrationEnabled && navigator.vibrate) navigator.vibrate(pattern);
 }
-
