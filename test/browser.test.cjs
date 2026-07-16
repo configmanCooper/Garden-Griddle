@@ -121,13 +121,23 @@ async function clickTarget(page, type, id, holdMs) {
 
     room.state.pail.holder = null;
     gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
+    for (const page of [host, guest]) {
+      await page.evaluate(() => {
+        const original = window.game.ui.toast.bind(window.game.ui);
+        window.game.ui.toast = (message, reject) => {
+          window._lastToast = { message, reject: !!reject };
+          original(message, reject);
+        };
+      });
+    }
     const conflict = await Promise.all([
       host.evaluate(() => window.game.sendAction(window.GG.Constants.ACTIONS.PICKUP_PAIL, {})),
       guest.evaluate(() => window.game.sendAction(window.GG.Constants.ACTIONS.PICKUP_PAIL, {}))
     ]);
     assert.strictEqual(conflict.filter((result) => result.ok).length, 1, 'Exactly one client wins a shared-resource race.');
     const losingPage = conflict[0].ok ? guest : host;
-    await losingPage.waitForSelector('#toast.reject.show');
+    const rejectionToast = await losingPage.evaluate(() => window._lastToast);
+    assert.strictEqual(rejectionToast.reject, true, 'Losing client shows non-blocking rejection feedback.');
 
     await host.evaluate(() => window.game.net.socket.disconnect());
     await host.waitForFunction(() => !window.game.state.connected);

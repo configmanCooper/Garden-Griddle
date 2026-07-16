@@ -65,6 +65,7 @@ button { cursor: pointer; }
 .campaign-top strong { display: block; font-size: 24px; }
 #level-select { width: 100%; margin: 14px 0; accent-color: var(--caramel); }
 .level-stars { min-height: 24px; color: var(--gold); font-size: 20px; }
+.level-details { min-height: 40px; color: var(--ink-soft); text-align: center; font-size: 12px; line-height: 1.45; }
 #start-day { width: 100%; margin-top: 8px; }
 #room-hint { margin: 8px 0 0; text-align: center; color: var(--ink-soft); font-size: 13px; }
 

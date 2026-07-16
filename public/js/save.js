@@ -27,11 +27,21 @@ export function load() {
 
 export function write(save) {
   try {
+    const stored = JSON.parse(localStorage.getItem(KEY) || 'null');
+    const storedRevision = stored && stored.campaign ? Number(stored.campaign.revision) || 0 : -1;
+    const incomingRevision = save && save.campaign ? Number(save.campaign.revision) || 0 : 0;
+    if (storedRevision > incomingRevision) save.campaign = window.GG.Schema.normalizeCampaign(stored.campaign);
     localStorage.setItem(KEY, JSON.stringify(save));
     return true;
   } catch (_error) {
     return false;
   }
+}
+
+export function acceptCampaign(current, incoming) {
+  const local = window.GG.Schema.normalizeCampaign(current);
+  const next = window.GG.Schema.normalizeCampaign(incoming);
+  return next.revision >= local.revision ? next : local;
 }
 
 export function sessionFor(code) {
@@ -52,4 +62,3 @@ export function storeServerUrl(url) {
     else localStorage.removeItem('gg_server_url');
   } catch (_error) {}
 }
-

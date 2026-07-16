@@ -10,7 +10,8 @@
     "test": "node test/run.js",
     "test:core": "node test/core.test.js",
     "test:server": "node test/server.test.js",
-    "test:browser": "node test/browser.test.cjs"
+    "test:browser": "node test/browser.test.cjs",
+    "test:progression": "node test/progression.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",

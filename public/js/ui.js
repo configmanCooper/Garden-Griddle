@@ -101,6 +101,10 @@ export class UI {
     byId('selected-level-label').textContent = level;
     const campaign = this.game.state.room && this.game.state.room.campaign;
     byId('level-stars').textContent = campaign ? stars(campaign.bestStars[level] || 0) : '☆☆☆';
+    const players = this.game.state.room ? Math.max(1, this.game.state.room.players.filter((player) => player.connected).length) : 2;
+    const details = B.compileLevel(level, players);
+    byId('level-details').textContent = details.name + ' - ' + details.recipeCount + ' recipes - orders about every '
+      + details.orderInterval.toFixed(1) + 's - ' + Math.round(details.patience) + 's patience';
   }
 
   updateSnapshot(snapshot, state) {
@@ -127,7 +131,9 @@ export class UI {
     } else {
       this.setProgress(false, 0);
       const selected = state.selectedOrderId && snapshot.orders.find((order) => order.id === state.selectedOrderId);
-      byId('selection-status').textContent = selected ? 'Order selected: tap an empty stovetop.' : 'Tap plots, the cow, mixer, pail, or stovetops.';
+      byId('selection-status').textContent = selected ? 'Order selected: tap an empty stovetop.'
+        : snapshot.elapsed < snapshot.level.prepSeconds ? 'Prep time: grow ingredients, milk the cow, and mix batter.'
+          : 'Tap plots, the cow, mixer, pail, or stovetops.';
     }
   }
 

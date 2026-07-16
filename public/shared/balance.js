@@ -78,11 +78,11 @@
 
   function milestoneForLevel(level) {
     return {
-      10: { name: 'Berry Brunch', recipeBias: ['strawberry', 'blackberry', 'strawberry-sugar', 'forest-berry'] },
-      20: { name: 'Lemon Festival', recipeBias: ['lemon-sugar', 'citrus-berry'] },
-      30: { name: 'Banana Bonanza', recipeBias: ['banana', 'banana-sugar', 'strawberry-banana'] },
-      40: { name: 'Garden Gala', recipeBias: ['forest-berry', 'citrus-berry', 'strawberry-banana'] },
-      50: { name: 'Grand Crepe Jubilee', recipeBias: C.RECIPES.map((recipe) => recipe.id) }
+      10: { name: 'Berry Brunch', recipeBias: ['strawberry', 'blackberry'], burnGraceMultiplier: 0.96 },
+      20: { name: 'Lemon Festival', recipeBias: ['lemon-sugar'], burnGraceMultiplier: 0.94 },
+      30: { name: 'Banana Bonanza', recipeBias: ['banana', 'banana-sugar', 'strawberry-banana'], burnGraceMultiplier: 0.92 },
+      40: { name: 'Garden Gala', recipeBias: ['forest-berry', 'strawberry-banana'], burnGraceMultiplier: 0.9 },
+      50: { name: 'Grand Crepe Jubilee', recipeBias: C.RECIPES.map((recipe) => recipe.id), burnGraceMultiplier: 0.88 }
     }[level] || null;
   }
 
@@ -100,6 +100,7 @@
       name: milestone ? milestone.name : 'Day ' + level,
       milestone: !!milestone,
       recipeBias: milestone ? milestone.recipeBias.slice() : null,
+      burnGraceMultiplier: milestone ? milestone.burnGraceMultiplier : 1,
       recipeCount: recipeCountForLevel(level),
       orderInterval: Number(orderInterval.toFixed(3)),
       patience: Number(lerp(40, 18, t).toFixed(3)),

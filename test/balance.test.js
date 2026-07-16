@@ -12,6 +12,12 @@ function first(state, predicate) {
   return state.orders.find(predicate);
 }
 
+function act(state, playerId, action, payload) {
+  const result = Sim.applyAction(state, playerId, action, payload || {});
+  if (result.ok) state._botAcceptedActions = (state._botAcceptedActions || 0) + 1;
+  return result;
+}
+
 function canMake(state, order) {
   if (!order || state.batter < 1) return false;
   const recipe = C.RECIPE_BY_ID[order.recipeId];
@@ -60,7 +66,7 @@ function desiredCrops(state) {
 
 function plantDesired(state, playerId, plot) {
   const crop = desiredCrops(state)[Number(plot.id.split('-')[1]) - 1];
-  const result = Sim.applyAction(state, playerId, C.ACTIONS.PLANT, { plotId: plot.id, crop });
+  const result = act(state, playerId, C.ACTIONS.PLANT, { plotId: plot.id, crop });
   if (result.ok) state._botInitialized.add(plot.id);
   return result.ok;
 }
@@ -69,19 +75,19 @@ function urgentKitchenAction(state, playerId) {
   const player = state.players[playerId];
   if (player.task) return false;
   const ready = state.stoves.find((stove) => stove.state === 'ready' && !stove.lockedBy);
-  if (ready) return Sim.applyAction(state, playerId, C.ACTIONS.SERVE_CREPE, { stoveId: ready.id }).ok;
+  if (ready) return act(state, playerId, C.ACTIONS.SERVE_CREPE, { stoveId: ready.id }).ok;
   const burnt = state.stoves.find((stove) => stove.state === 'burnt' && !stove.lockedBy);
-  if (burnt) return Sim.applyAction(state, playerId, C.ACTIONS.CLEAR_BURNT, { stoveId: burnt.id }).ok;
+  if (burnt) return act(state, playerId, C.ACTIONS.CLEAR_BURNT, { stoveId: burnt.id }).ok;
   if (state.cow.milk >= 1 && !state.cow.lockedBy && state.fridge.milk < 12) {
-    return Sim.applyAction(state, playerId, C.ACTIONS.MILK).ok;
+    return act(state, playerId, C.ACTIONS.MILK).ok;
   }
   if (state.mixer.state === 'idle' && state.batter < 7) {
-    const mixed = Sim.applyAction(state, playerId, C.ACTIONS.MIX_BATTER);
+    const mixed = act(state, playerId, C.ACTIONS.MIX_BATTER);
     if (mixed.ok) return true;
   }
   const stove = state.stoves.find((item) => item.state === 'empty');
   const order = first(state, (item) => item.status === 'waiting' && canMake(state, item));
-  if (stove && order) return Sim.applyAction(state, playerId, C.ACTIONS.START_CREPE, { stoveId: stove.id, orderId: order.id }).ok;
+  if (stove && order) return act(state, playerId, C.ACTIONS.START_CREPE, { stoveId: stove.id, orderId: order.id }).ok;
   return false;
 }
 
@@ -95,7 +101,7 @@ function kitchenAction(state, playerId) {
   });
   if (uninitialized) return plantDesired(state, playerId, uninitialized);
   const ripe = state.plots.find((plot) => plot.state === 'ripe' && !plot.lockedBy);
-  if (ripe) return Sim.applyAction(state, playerId, C.ACTIONS.HARVEST, { plotId: ripe.id }).ok;
+  if (ripe) return act(state, playerId, C.ACTIONS.HARVEST, { plotId: ripe.id }).ok;
   const empty = plantablePlot(state);
   if (empty) return plantDesired(state, playerId, empty);
   return false;
@@ -104,12 +110,12 @@ function kitchenAction(state, playerId) {
 function gardenAction(state, playerId) {
   const player = state.players[playerId];
   if (player.task) return false;
-  if (!state.pail.holder) return Sim.applyAction(state, playerId, C.ACTIONS.PICKUP_PAIL).ok;
+  if (!state.pail.holder) return act(state, playerId, C.ACTIONS.PICKUP_PAIL).ok;
   if (state.pail.holder === playerId) {
     const dry = state.plots
       .filter((plot) => plot.state === 'dry' && !plot.lockedBy)
       .sort((a, b) => C.CROPS[b.crop].growSeconds - C.CROPS[a.crop].growSeconds)[0];
-    if (dry) return Sim.applyAction(state, playerId, C.ACTIONS.WATER, { plotId: dry.id }).ok;
+    if (dry) return act(state, playerId, C.ACTIONS.WATER, { plotId: dry.id }).ok;
   }
   const uninitialized = state.plots.find((plot) => {
     state._botInitialized = state._botInitialized || new Set();
@@ -117,7 +123,7 @@ function gardenAction(state, playerId) {
   });
   if (uninitialized) return plantDesired(state, playerId, uninitialized);
   const ripe = state.plots.find((plot) => plot.state === 'ripe' && !plot.lockedBy);
-  if (ripe) return Sim.applyAction(state, playerId, C.ACTIONS.HARVEST, { plotId: ripe.id }).ok;
+  if (ripe) return act(state, playerId, C.ACTIONS.HARVEST, { plotId: ripe.id }).ok;
   const empty = plantablePlot(state);
   if (empty) return plantDesired(state, playerId, empty);
   return kitchenAction(state, playerId);
@@ -154,14 +160,24 @@ function runBots(level, playerCount, upgrades) {
 
 function runBalanceTests() {
   const max = Object.fromEntries(C.UPGRADE_IDS.map((id) => [id, B.MAX_UPGRADE_TIER]));
+  const mid = Object.fromEntries(C.UPGRADE_IDS.map((id) => [id, 3]));
   let threeStarred = 0;
   let soloPassed = 0;
   for (let level = 1; level <= C.MAX_LEVEL; level += 1) {
-    const duo = runBots(level, 2, max);
+    const duoState = runBotsState(level, 2, max);
+    const duo = duoState.result;
     assert.ok(duo.stars >= 3, 'Bounded-action duo should earn 3 stars on level ' + level + ' but earned ' + duo.stars);
+    const actionLimit = duoState.level.daySeconds * 2 * B.HUMAN_ACTIONS_PER_SECOND_PER_PLAYER * B.HUMAN_APM_GUARD;
+    assert.ok((duoState._botAcceptedActions || 0) <= actionLimit, 'Duo actions remain inside the authored human input ceiling.');
     threeStarred += 1;
-    const solo = runBots(level, 1, max);
+    const soloState = runBotsState(level, 1, max);
+    const solo = soloState.result;
     assert.ok(solo.stars >= 1, 'Bounded-action solo bot should pass level ' + level);
+    const soloLimit = soloState.level.daySeconds * B.HUMAN_ACTIONS_PER_SECOND_PER_PLAYER * B.HUMAN_APM_GUARD;
+    assert.ok((soloState._botAcceptedActions || 0) <= soloLimit, 'Solo actions remain inside the authored human input ceiling.');
+    assert.ok(runBots(level, 2, mid).stars >= 1, 'Mid-upgrade duo should pass level ' + level);
+    assert.ok(runBots(level, 1, mid).stars >= 1, 'Mid-upgrade solo should pass level ' + level);
+    assert.deepStrictEqual(runBots(level, 2, max), duo, 'Full balance run is deterministic on level ' + level);
     soloPassed += 1;
   }
 

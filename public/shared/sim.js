@@ -322,12 +322,6 @@
   function pickRecipe(state) {
     const level = state.level;
     const available = C.RECIPES.slice(0, level.recipeCount);
-    if (level.recipeBias) {
-      for (const id of level.recipeBias) {
-        const recipe = C.RECIPE_BY_ID[id];
-        if (recipe && !available.includes(recipe)) available.push(recipe);
-      }
-    }
     const random = R.makeRng((state.seed + state.orderSerial * 2654435761) >>> 0);
     if (level.recipeBias && random() < 0.62) {
       const biased = level.recipeBias.map((id) => C.RECIPE_BY_ID[id]).filter((recipe) => recipe && available.includes(recipe));

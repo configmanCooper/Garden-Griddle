@@ -68,6 +68,7 @@
     if (Number.isFinite(opts.prepSeconds) && opts.prepSeconds >= 0) level.prepSeconds = opts.prepSeconds;
     const upgrades = normalizeUpgrades(opts.upgrades);
     const effects = B.effectsFor(upgrades);
+    effects.burnGraceSeconds *= level.burnGraceMultiplier;
     const players = {};
     ids.forEach((id, index) => {
       players[id] = makePlayer(

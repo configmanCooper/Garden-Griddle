@@ -194,7 +194,7 @@ class Game {
 
   syncCampaign(campaign) {
     if (!campaign) return;
-    this.save.campaign = window.GG.Schema.normalizeCampaign(campaign);
+    this.save.campaign = Save.acceptCampaign(this.save.campaign, campaign);
     Save.write(this.save);
   }
 
