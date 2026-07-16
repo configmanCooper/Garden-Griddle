@@ -79,6 +79,8 @@
       if (plot && plot.lockedBy === player.id) plot.lockedBy = null;
     } else if (task.targetType === 'cow') {
       if (state.cow.lockedBy === player.id) state.cow.lockedBy = null;
+    } else if (task.targetType === 'sink') {
+      if (state.sink.lockedBy === player.id) state.sink.lockedBy = null;
     } else if (task.targetType === 'stove') {
       const stove = stoveOf(state, task.targetId);
       if (stove && stove.lockedBy === player.id) stove.lockedBy = null;
@@ -137,6 +139,7 @@
         const plot = plotOf(state, data.plotId);
         if (!plot) return fail('Unknown plot.', 'target');
         if (!C.CROPS[data.crop]) return fail('Unknown crop.', 'crop');
+        if (state.pail.holder === playerId) return fail('Put down the watering pail before planting.', 'pail');
         if (plot.lockedBy && plot.lockedBy !== playerId) return fail('That plot is taken.', 'taken');
         if (plot.state !== 'empty') return fail('That plot is not empty.', 'state');
         if ((state.seeds[data.crop] || 0) <= 0) return fail('No seeds remain.', 'resource');
@@ -161,10 +164,17 @@
       case C.ACTIONS.DROP_PAIL:
         if (!dropPail(state, playerId)) return fail('You are not holding the pail.', 'state');
         return ok();
+      case C.ACTIONS.FILL_PAIL:
+        if (state.pail.holder !== playerId) return fail('Pick up the pail before using the sink.', 'pail');
+        if (state.pail.water >= state.pail.capacity) return fail('The pail is already full.', 'state');
+        if (state.sink.lockedBy && state.sink.lockedBy !== playerId) return fail('The sink is in use.', 'taken');
+        state.sink.lockedBy = playerId;
+        return startTask(state, player, 'fillPail', state.effects.fillPailSeconds, 'sink', 'sink');
       case C.ACTIONS.WATER: {
         const plot = plotOf(state, data.plotId);
         if (!plot) return fail('Unknown plot.', 'target');
         if (state.pail.holder !== playerId) return fail('Pick up the pail first.', 'pail');
+        if (state.pail.water <= 0) return fail('The pail is empty. Fill it at the kitchen sink.', 'resource');
         if (plot.lockedBy && plot.lockedBy !== playerId) return fail('That plot is taken.', 'taken');
         if (plot.state !== 'dry') return fail('That crop does not need water.', 'state');
         plot.lockedBy = playerId;
@@ -203,6 +213,7 @@
         state.batter -= 1;
         spendResources(state.fridge, recipe.toppings);
         order.status = 'cooking';
+        state.tutorial.crepeStarted = true;
         order.stoveId = stove.id;
         order.assignedBy = playerId;
         stove.state = 'cooking';
@@ -255,14 +266,23 @@
         task.data.reservedSeed = false;
         plot.crop = crop;
         plot.state = 'dry';
+        state.tutorial.planted[crop] += 1;
         event(state, 'planted', { playerId: player.id, plotId: plot.id, crop });
       }
     } else if (task.kind === 'water') {
       const plot = plotOf(state, task.targetId);
       if (plot && plot.lockedBy === player.id && plot.state === 'dry' && plot.crop) {
         plot.state = 'growing';
+        state.pail.water = Math.max(0, state.pail.water - 1);
+        state.tutorial.watered += 1;
         plot.readyAt = state.elapsed + C.CROPS[plot.crop].growSeconds * state.effects.growthMultiplier;
         event(state, 'watered', { playerId: player.id, plotId: plot.id, readyAt: plot.readyAt });
+      }
+    } else if (task.kind === 'fillPail') {
+      if (state.sink.lockedBy === player.id && state.pail.holder === player.id) {
+        state.pail.water = state.pail.capacity;
+        state.tutorial.pailFilled = true;
+        event(state, 'pailFilled', { playerId: player.id, amount: state.pail.water });
       }
     } else if (task.kind === 'harvest') {
       const plot = plotOf(state, task.targetId);
@@ -271,6 +291,7 @@
         let amount = B.HARVEST_YIELD;
         for (let i = 0; i < B.HARVEST_YIELD; i += 1) if (random() < state.effects.harvestBonusChance) amount += 1;
         state.fridge[plot.crop] += amount;
+        state.tutorial.harvested[plot.crop] += 1;
         event(state, 'harvested', { playerId: player.id, plotId: plot.id, crop: plot.crop, amount });
         plot.crop = null;
         plot.state = 'empty';
@@ -281,6 +302,7 @@
         const random = semanticRandom(state, player.id + 'milk');
         const amount = 1 + (random() < state.effects.milkBonusChance ? 1 : 0);
         state.fridge.milk += amount;
+        state.tutorial.milkCollected += amount;
         state.cow.milk = 0;
         state.cow.milkReadyAt = state.elapsed + state.effects.milkRechargeSeconds;
         event(state, 'milked', { playerId: player.id, amount });
@@ -294,6 +316,7 @@
         order.servedAt = state.elapsed;
         order.payAt = state.elapsed + state.effects.eatSeconds;
         state.stats.served += 1;
+        state.tutorial.served = true;
         order.tip = Math.max(0, Math.round(patienceLeft * 2));
         clearStove(stove);
         event(state, 'served', { playerId: player.id, orderId: order.id, tip: order.tip });
@@ -433,6 +456,7 @@
 
     if (state.mixer.state === 'mixing' && state.mixer.readyAt <= state.elapsed + EPS) {
       state.batter += state.effects.batterYield;
+      state.tutorial.batterMixed = true;
       event(state, 'batterReady', { amount: state.effects.batterYield, playerId: state.mixer.startedBy });
       state.mixer = { state: 'idle', readyAt: 0, startedBy: null };
     }

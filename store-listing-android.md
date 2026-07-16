@@ -9,7 +9,7 @@ Grow ingredients and run a crepe cafe together in online two-player co-op.
 ## Full description
 Garden & Griddle is a cheerful online cooperative restaurant game built for two players.
 
-Share a room code, then work together through 50 increasingly busy days. Plant wheat, sugar cane, berries, lemons, and bananas. Grab the watering pail, tend the garden, harvest ingredients into the shared fridge, and milk the cow whenever it is ready.
+Share a room code, then work together through 50 increasingly busy days. Plant wheat, sugar cane, berries, lemons, and bananas. Fill the watering pail at the kitchen sink, tend up to five plants per refill, harvest ingredients into the shared fridge, and milk the cow whenever it is ready.
 
 In the kitchen, mix flour, sugar, and milk into ten-crepe batter batches. Read customer orders, use all three stovetops, serve crepes before patience runs out, and watch happy guests eat and pay.
 
@@ -40,4 +40,3 @@ rocmat21@gmail.com
 
 ## Privacy policy
 https://garden-and-griddle.onrender.com/privacy.html
-

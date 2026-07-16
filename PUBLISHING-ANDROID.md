@@ -11,9 +11,9 @@ Run:
 
 The build places these files in `dist\`:
 
-- `GardenAndGriddle-1.0.0-debug.apk`
-- `GardenAndGriddle-1.0.0-release.apk`
-- `GardenAndGriddle-1.0.0-release.aab`
+- `GardenAndGriddle-1.1.0-debug.apk`
+- `GardenAndGriddle-1.1.0-release.apk`
+- `GardenAndGriddle-1.1.0-release.aab`
 
 Upload the `.aab` to Google Play.
 
@@ -22,8 +22,8 @@ Upload the `.aab` to Google Play.
 Create the app as a **paid game** at **$0.99**. A free app cannot later be changed to paid.
 
 - App id: `com.configmancooper.gardenandgriddle`
-- Version code: `10000`
-- Version name: `1.0.0`
+- Version code: `10100`
+- Version name: `1.1.0`
 - Minimum Android: 7.0 / API 24
 - Target Android: API 36
 - Category: Casual

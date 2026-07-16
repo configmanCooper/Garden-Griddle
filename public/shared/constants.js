@@ -9,7 +9,7 @@
   'use strict';
 
   const PROTOCOL = 1;
-  const CLIENT_BUILD = '1.0.0';
+  const CLIENT_BUILD = '1.1.0';
   const MAX_LEVEL = 50;
   const MAX_PLAYERS = 2;
 
@@ -56,6 +56,7 @@
     PLANT: 'plant',
     PICKUP_PAIL: 'pickupPail',
     DROP_PAIL: 'dropPail',
+    FILL_PAIL: 'fillPail',
     WATER: 'water',
     HARVEST: 'harvest',
     MILK: 'milk',
@@ -103,4 +104,3 @@
     EVENTS
   };
 });
-

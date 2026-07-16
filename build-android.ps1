@@ -26,7 +26,8 @@ try {
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
-$version = '1.0.0'
+Get-ChildItem $dist -Filter 'GardenAndGriddle-*' -ErrorAction SilentlyContinue | Remove-Item -Force
+$version = '1.1.0'
 $artifacts = @{
   'android\app\build\outputs\apk\debug\app-debug.apk' = "GardenAndGriddle-$version-debug.apk"
   'android\app\build\outputs\apk\release\app-release.apk' = "GardenAndGriddle-$version-release.apk"
@@ -38,4 +39,3 @@ foreach ($source in $artifacts.Keys) {
   Copy-Item $path (Join-Path $dist $artifacts[$source]) -Force
 }
 Get-ChildItem $dist | Select-Object Name, @{n='MB';e={[math]::Round($_.Length / 1MB, 2)}}
-

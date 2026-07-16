@@ -20,8 +20,8 @@ assert.match(variables, /targetSdkVersion = 36/);
 
 const gradle = read('android/app/build.gradle');
 assert.match(gradle, /applicationId "com\.configmancooper\.gardenandgriddle"/);
-assert.match(gradle, /versionCode 10000/);
-assert.match(gradle, /versionName "1\.0\.0"/);
+assert.match(gradle, /versionCode 10100/);
+assert.match(gradle, /versionName "1\.1\.0"/);
 assert.match(gradle, /signingConfig signingConfigs\.release/);
 
 const manifest = read('android/app/src/main/AndroidManifest.xml');

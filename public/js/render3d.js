@@ -195,6 +195,7 @@ export class Render3D {
     pail.add(handle);
     pail.position.set(-4.3, 0, 4.7);
     this._target(bucket, { type: 'pail', id: 'pail' });
+    pail.userData.bucket = bucket;
     this.targets.set('pail-group', pail);
     this.scene.add(pail);
 
@@ -256,6 +257,11 @@ export class Render3D {
     fridge.position.set(1.2, 1.95, -4.8);
     this.scene.add(fridge);
 
+    const sink = mesh(new THREE.CylinderGeometry(0.82, 0.62, 0.55, 20), 0x9eb6bf);
+    sink.position.set(1.3, 1.15, 3.8);
+    this._target(sink, { type: 'sink', id: 'sink' });
+    this.scene.add(sink);
+
     const mixerGroup = new THREE.Group();
     const counter = mesh(new THREE.BoxGeometry(3, 1.4, 2.2), 0x9b603b);
     counter.position.y = 0.7;
@@ -301,7 +307,7 @@ export class Render3D {
     const service = mesh(new THREE.BoxGeometry(2.1, 1.5, 11), 0xb87643);
     service.position.set(11.6, 0.75, 0);
     this.scene.add(service);
-    for (let z = -4.2; z <= 4.2; z += 2.8) {
+    for (let z = -4.2; z <= 2.8; z += 2.8) {
       const stool = mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), 0x6d4a35);
       stool.position.set(13.2, 0.38, z);
       this.scene.add(stool);
@@ -500,6 +506,8 @@ export class Render3D {
     cow.userData.milkBadge.position.y = 2.15 + (this.reducedMotion ? 0 : Math.sin(performance.now() * 0.005) * 0.08);
 
     const pail = this.targets.get('pail-group');
+    const waterRatio = snapshot.pail.capacity ? snapshot.pail.water / snapshot.pail.capacity : 0;
+    pail.userData.bucket.material.color.setRGB(0.43 - waterRatio * 0.12, 0.62 + waterRatio * 0.12, 0.76 + waterRatio * 0.16);
     if (snapshot.pail.holder && snapshot.players[snapshot.pail.holder]) {
       const holder = snapshot.players[snapshot.pail.holder];
       const avatar = this.playerViews.get(holder ? holder.seat : 0);
@@ -598,11 +606,14 @@ export class Render3D {
         position = this.targets.get('cow-group').position.clone().add(new THREE.Vector3(0.8, 1.6, 0));
       } else if (event.type === 'mixerStarted' || event.type === 'batterReady') {
         position = this.targets.get('mixer-group').position.clone().add(new THREE.Vector3(0, 1.7, 0));
+      } else if (event.type === 'pailFilled') {
+        const sink = this.targets.get('sink:sink');
+        position = sink.position.clone().add(new THREE.Vector3(0, 0.8, 0));
       } else if (event.type === 'served' || event.type === 'customerPaid') {
         position = new THREE.Vector3(12.3, 1.4, 0);
       }
       if (!position) continue;
-      if (event.type === 'watered') { color = 0x62b9ef; mode = 'water'; }
+      if (event.type === 'watered' || event.type === 'pailFilled') { color = 0x62b9ef; mode = 'water'; }
       else if (event.type === 'mixerStarted') { color = 0xfff0cf; mode = 'steam'; }
       else if (event.type === 'crepeReady') { color = 0xf5e4bd; mode = 'steam'; }
       else if (event.type === 'customerPaid' || event.type === 'served') color = 0xffcf45;
@@ -619,6 +630,7 @@ export class Render3D {
     if (id && this.plotViews.has(id)) return this.plotViews.get(id).group.position.clone().add(new THREE.Vector3(1.6, 0, 0));
     if (id && this.stoveViews.has(id)) return this.stoveViews.get(id).group.position.clone().add(new THREE.Vector3(-1.4, 0, 0));
     if (lastAction.kind === 'milk') return new THREE.Vector3(-9, 0, 6);
+    if (lastAction.kind === 'fillPail') return new THREE.Vector3(0.2, 0, 3.8);
     if (lastAction.kind === 'mixBatter') return new THREE.Vector3(3.1, 0, -4.1);
     if (lastAction.kind === 'pickupPail' || lastAction.kind === 'dropPail') return new THREE.Vector3(-4.5, 0, 4);
     return null;

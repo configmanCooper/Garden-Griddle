@@ -14,6 +14,7 @@ export class UI {
     this.toastTimer = null;
     this.pendingPlotId = null;
     this.orderNodes = new Map();
+    this.tutorialSignature = '';
     this.bind();
     this.buildCropOptions();
   }
@@ -35,6 +36,11 @@ export class UI {
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
     byId('held-item').onclick = () => this.game.dropHeldItem();
+    byId('tutorial-toggle').onclick = () => {
+      const panel = byId('tutorial-panel');
+      panel.classList.toggle('collapsed');
+      byId('tutorial-toggle').textContent = panel.classList.contains('collapsed') ? '+' : '-';
+    };
     byId('setting-sfx').onchange = (event) => this.game.updateSetting('sfx', event.target.checked);
     byId('setting-vibration').onchange = (event) => this.game.updateSetting('vibration', event.target.checked);
     byId('setting-reduced-motion').onchange = (event) => this.game.updateSetting('reducedMotion', event.target.checked);
@@ -123,9 +129,10 @@ export class UI {
     byId('serve-score').textContent = snapshot.stats.served + ' / ' + snapshot.stats.spawned + ' served';
     this.renderOrders(snapshot, state.selectedOrderId);
     this.renderResources(snapshot);
+    this.renderTutorial(snapshot);
     const me = state.mySimPlayer();
     const held = snapshot.pail.holder === (state.session && state.session.playerId);
-    byId('held-item').textContent = held ? 'Watering pail - tap to drop' : 'Hands free';
+    byId('held-item').textContent = held ? 'Watering pail ' + snapshot.pail.water + '/' + snapshot.pail.capacity + ' - tap to drop' : 'Hands free';
     byId('held-item').classList.toggle('active', held);
     const partner = state.partner();
     byId('partner-name').textContent = partner ? partner.name : 'Waiting for partner';
@@ -141,7 +148,7 @@ export class UI {
       const selected = state.selectedOrderId && snapshot.orders.find((order) => order.id === state.selectedOrderId);
       byId('selection-status').textContent = selected ? 'Order selected: tap an empty stovetop.'
         : snapshot.elapsed < snapshot.level.prepSeconds ? 'Prep time: grow ingredients, milk the cow, and mix batter.'
-          : 'Tap plots, the cow, mixer, pail, or stovetops.';
+          : 'Tap plots, the cow, sink, mixer, pail, or stovetops.';
     }
   }
 
@@ -219,6 +226,87 @@ export class UI {
       chip.dataset.resource = id;
       holder.appendChild(chip);
     }
+  }
+
+  renderTutorial(snapshot) {
+      const panel = byId('tutorial-panel');
+      if (!snapshot || snapshot.level.number !== 1) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      const tutorial = snapshot.tutorial;
+      const plantedCount = tutorial.planted.flour + tutorial.planted.sugar + tutorial.planted.strawberry
+        + tutorial.planted.blackberry + tutorial.planted.lemon;
+      const harvestedCount = tutorial.harvested.flour + tutorial.harvested.sugar + tutorial.harvested.strawberry
+        + tutorial.harvested.blackberry + tutorial.harvested.lemon;
+      const plantedDone = tutorial.planted.flour >= 1 && tutorial.planted.sugar >= 2
+        && tutorial.planted.strawberry >= 1 && tutorial.planted.blackberry >= 1 && tutorial.planted.lemon >= 1;
+      const harvestedDone = tutorial.harvested.flour >= 1 && tutorial.harvested.sugar >= 2
+        && tutorial.harvested.strawberry >= 1 && tutorial.harvested.blackberry >= 1 && tutorial.harvested.lemon >= 1;
+      const tasks = [
+        {
+          done: plantedDone,
+          title: 'Plant the ingredients (' + Math.min(6, plantedCount) + '/6)',
+          text: 'With empty hands, tap six empty plots: 1 Wheat, 2 Sugar Cane, 1 Strawberry, 1 Blackberry, and 1 Lemon.'
+        },
+        {
+          done: tutorial.pailFilled,
+          title: 'Fill the watering pail',
+          text: 'Tap the blue pail to pick it up, then tap the silver sink in the kitchen. It fills to 5/5.'
+        },
+        {
+          done: tutorial.watered >= 6,
+          title: 'Water all six crops (' + Math.min(6, tutorial.watered) + '/6)',
+          text: 'Hold down on each dry crop. After five plants, tap the sink again to refill for the sixth.'
+        },
+        {
+          done: harvestedDone,
+          title: 'Harvest the ingredients (' + Math.min(6, harvestedCount) + '/6)',
+          text: 'Wait for each plant to look full-grown, then tap it. Everything goes straight into the shared fridge.'
+        },
+        {
+          done: tutorial.milkCollected >= 3,
+          title: 'Collect milk (' + Math.min(3, tutorial.milkCollected) + '/3)',
+          text: 'Tap the cow whenever its white milk marker appears. It can hold only one milk at a time.'
+        },
+        {
+          done: tutorial.batterMixed,
+          title: 'Mix a batter batch',
+          text: 'When the fridge has 3 Flour, 3 Sugar, and 3 Milk, tap the mixing bowl. One batch makes 10 crepes.'
+        },
+        {
+          done: tutorial.crepeStarted,
+          title: 'Cook a customer order',
+          text: 'Tap a waiting order ticket at the top, then tap any empty stovetop. Exact toppings are used automatically.'
+        },
+        {
+          done: tutorial.served,
+          title: 'Serve the crepe',
+          text: 'When the stove ring turns green, tap it before the crepe burns. The customer will eat and pay.'
+        }
+      ];
+      const signature = tasks.map((task) => (task.done ? '1' : '0') + task.title).join('|');
+      if (signature === this.tutorialSignature) return;
+      this.tutorialSignature = signature;
+      const nextIndex = tasks.findIndex((task) => !task.done);
+      const list = byId('tutorial-list');
+      list.replaceChildren();
+      tasks.forEach((task, index) => {
+        const row = document.createElement('div');
+        row.className = 'tutorial-task' + (task.done ? ' done' : index === nextIndex ? ' next' : '');
+        const check = document.createElement('span');
+        check.className = 'tutorial-check';
+        check.textContent = task.done ? '✓' : String(index + 1);
+        const content = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = task.title;
+        const text = document.createElement('p');
+        text.textContent = task.text;
+        content.append(title, text);
+        row.append(check, content);
+        list.appendChild(row);
+      });
   }
 
   buildCropOptions() {

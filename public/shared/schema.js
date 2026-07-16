@@ -95,7 +95,8 @@
       seeds,
       fridge,
       batter: 0,
-      pail: { holder: null },
+      pail: { holder: null, water: 0, capacity: B.PAIL_CAPACITY },
+      sink: { lockedBy: null },
       cow: { milk: 0, milkReadyAt: effects.milkRechargeSeconds, lockedBy: null },
       mixer: { state: 'idle', readyAt: 0, startedBy: null },
       plots: Array.from({ length: B.PLOT_COUNT }, (_, index) => ({
@@ -119,6 +120,16 @@
       randomSerial: 0,
       eventSerial: 0,
       stats: { spawned: 0, served: 0, missed: 0, burnt: 0, waste: 0, coins: 0, tips: 0 },
+      tutorial: {
+        planted: Object.fromEntries(C.CROP_IDS.map((id) => [id, 0])),
+        pailFilled: false,
+        watered: 0,
+        harvested: Object.fromEntries(C.CROP_IDS.map((id) => [id, 0])),
+        milkCollected: 0,
+        batterMixed: false,
+        crepeStarted: false,
+        served: false
+      },
       events: [],
       result: null
     };

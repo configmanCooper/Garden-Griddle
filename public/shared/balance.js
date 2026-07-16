@@ -19,14 +19,16 @@
   const PLOT_COUNT = 12;
   const STOVE_COUNT = 3;
   const HARVEST_YIELD = 3;
+  const PAIL_CAPACITY = 5;
   const STAR_THRESHOLDS = [0.5, 0.7, 0.9];
   const SOLO_ARRIVAL_RATE = 0.5;
-  const HUMAN_ACTIONS_PER_SECOND_PER_PLAYER = 1.25;
+  const HUMAN_ACTIONS_PER_SECOND_PER_PLAYER = 1.5;
   const HUMAN_APM_GUARD = 0.8;
 
   const BASE_TIMINGS = {
     plant: 0.4,
     water: 1.2,
+    fillPail: 1.2,
     harvest: 0.8,
     milk: 0.5,
     mix: 3,
@@ -142,6 +144,7 @@
       growthMultiplier: Math.max(0.45, 1 - greenThumb * 0.06),
       plantSeconds: BASE_TIMINGS.plant,
       waterSeconds: Math.max(0.2, BASE_TIMINGS.water * (1 - quickPour * 0.15)),
+      fillPailSeconds: BASE_TIMINGS.fillPail,
       harvestSeconds: Math.max(0.2, BASE_TIMINGS.harvest * (1 - nimbleHarvester * 0.12)),
       milkSeconds: BASE_TIMINGS.milk,
       milkRechargeSeconds: Math.max(1, BASE_TIMINGS.milkRecharge * (1 - happyCow * 0.08)),
@@ -190,16 +193,19 @@
     const effectiveHarvestYield = HARVEST_YIELD * (1 + fx.harvestBonusChance);
     const ingredientUnits = maxOrders * averageToppingUnits(level) + batches * (BATTER_COST.flour + BATTER_COST.sugar);
     const harvestsNeeded = ingredientUnits / effectiveHarvestYield;
-    const pailWaterCapacity = level.daySeconds / fx.waterSeconds;
+    const pailCycleSeconds = fx.waterSeconds + fx.fillPailSeconds / PAIL_CAPACITY;
+    const pailWaterCapacity = level.daySeconds / pailCycleSeconds;
     const stoveCapacity = STOVE_COUNT * serviceSeconds / fx.cookSeconds;
     const milkCapacity = level.daySeconds / fx.milkRechargeSeconds;
     const milkNeeded = batches * BATTER_COST.milk;
     const milkCollections = milkNeeded / (1 + fx.milkBonusChance);
-    const estimatedActions = harvestsNeeded * 3 + maxOrders * 2 + batches + milkCollections + 2;
+    const refillsNeeded = Math.ceil(harvestsNeeded / PAIL_CAPACITY);
+    const estimatedActions = harvestsNeeded * 3 + refillsNeeded + maxOrders * 2 + batches + milkCollections + 2;
     const humanActionCapacity = level.daySeconds * level.playerCount * HUMAN_ACTIONS_PER_SECOND_PER_PLAYER * HUMAN_APM_GUARD;
     const personSeconds = harvestsNeeded * (fx.plantSeconds + fx.waterSeconds + fx.harvestSeconds)
       + maxOrders * fx.serveSeconds
-      + milkCollections * fx.milkSeconds;
+      + milkCollections * fx.milkSeconds
+      + refillsNeeded * fx.fillPailSeconds;
     const personSecondCapacity = level.daySeconds * level.playerCount * HUMAN_APM_GUARD;
     const averageGrowSeconds = C.CROP_IDS.reduce((sum, id) => sum + C.CROPS[id].growSeconds * fx.growthMultiplier, 0) / C.CROP_IDS.length;
     const plotHarvestCapacity = BoundedPlotCapacity(level.daySeconds, averageGrowSeconds, fx);
@@ -208,6 +214,7 @@
       maxOrders,
       harvestsNeeded,
       pailWaterCapacity,
+      refillsNeeded,
       stoveCapacity,
       milkNeeded,
       milkCapacity,
@@ -243,6 +250,7 @@
     PLOT_COUNT,
     STOVE_COUNT,
     HARVEST_YIELD,
+    PAIL_CAPACITY,
     STAR_THRESHOLDS,
     SOLO_ARRIVAL_RATE,
     HUMAN_ACTIONS_PER_SECOND_PER_PLAYER,

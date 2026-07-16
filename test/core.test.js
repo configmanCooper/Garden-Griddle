@@ -31,6 +31,8 @@ function testInitialState() {
   for (const crop of C.CROP_IDS) equal(state.seeds[crop], 20, crop + ' starts with twenty seeds.');
   equal(state.batter, 0, 'Batter starts empty.');
   equal(state.cow.milk, 0, 'Cow starts recharging.');
+  equal(state.pail.water, 0, 'Pail starts empty.');
+  equal(state.pail.capacity, 5, 'Pail holds enough water for five plants.');
 }
 
 function testGardenLoop() {
@@ -42,12 +44,21 @@ function testGardenLoop() {
   complete(state, state.effects.plantSeconds + 0.01);
   equal(state.plots[0].state, 'dry', 'Planting produces a dry crop.');
   equal(state.seeds.flour, 19, 'Planting consumes one seed.');
+  equal(state.tutorial.planted.flour, 1, 'Tutorial records planted wheat.');
   complete(state, 5);
   equal(state.plots[0].state, 'dry', 'Dry crops do not grow.');
   truthy(Sim.applyAction(state, 'p1', C.ACTIONS.PICKUP_PAIL).ok, 'Player can pick up the pail.');
   equal(Sim.applyAction(state, 'p2', C.ACTIONS.PICKUP_PAIL).code, 'taken', 'Only one player can hold the pail.');
+  equal(Sim.applyAction(state, 'p1', C.ACTIONS.PLANT, { plotId: 'plot-2', crop: 'sugar' }).code, 'pail', 'Player must put down the pail before planting.');
+  equal(Sim.applyAction(state, 'p1', C.ACTIONS.WATER, { plotId: 'plot-1' }).code, 'resource', 'Empty pail cannot water.');
+  truthy(Sim.applyAction(state, 'p1', C.ACTIONS.FILL_PAIL).ok, 'Kitchen sink begins filling the pail.');
+  complete(state, state.effects.fillPailSeconds + 0.01);
+  equal(state.pail.water, 5, 'Sink fills all five pail charges.');
+  equal(state.tutorial.pailFilled, true, 'Tutorial records the first sink refill.');
   truthy(Sim.applyAction(state, 'p1', C.ACTIONS.WATER, { plotId: 'plot-1' }).ok, 'Watering begins.');
   complete(state, state.effects.waterSeconds + 0.01);
+  equal(state.pail.water, 4, 'Watering consumes one pail charge.');
+  equal(state.tutorial.watered, 1, 'Tutorial records watered crops.');
   equal(state.plots[0].state, 'growing', 'Watering starts growth.');
   complete(state, C.CROPS.flour.growSeconds * state.effects.growthMultiplier + 0.02);
   equal(state.plots[0].state, 'ripe', 'Crop ripens at its authored time.');
@@ -55,6 +66,7 @@ function testGardenLoop() {
   equal(Sim.applyAction(state, 'p1', C.ACTIONS.HARVEST, { plotId: 'plot-1' }).code, 'taken', 'Harvest race has one winner.');
   complete(state, state.effects.harvestSeconds + 0.01);
   equal(state.fridge.flour, 3, 'Harvest enters the shared fridge.');
+  equal(state.tutorial.harvested.flour, 1, 'Tutorial records harvested wheat.');
   equal(state.plots[0].state, 'empty', 'Harvest clears the plot.');
 }
 
@@ -88,6 +100,7 @@ function testCow() {
   equal(Sim.applyAction(state, 'p1', C.ACTIONS.MILK).code, 'taken', 'Cow collection race has one winner.');
   complete(state, state.effects.milkSeconds + 0.01);
   equal(state.fridge.milk, 1, 'Milk enters the fridge.');
+  equal(state.tutorial.milkCollected, 1, 'Tutorial records collected milk.');
   equal(state.cow.milk, 0, 'Cow empties after collection.');
 }
 
@@ -103,6 +116,7 @@ function testBatterAndStoves() {
   equal(state.fridge.milk, 17, 'Mixer consumes milk.');
   complete(state, state.effects.mixSeconds + 0.01);
   equal(state.batter, 10, 'One batch makes ten crepes.');
+  equal(state.tutorial.batterMixed, true, 'Tutorial records completed batter.');
   complete(state, 0.1);
   const order = state.orders.find((item) => item.status === 'waiting');
   truthy(order, 'An order spawns after prep.');
@@ -121,6 +135,7 @@ function testBatterAndStoves() {
       orderId: target.id
     }).ok, 'Each stovetop can cook independently.');
   }
+  equal(state.tutorial.crepeStarted, true, 'Tutorial records the first cooking order.');
   equal(state.stoves.filter((stove) => stove.state === 'cooking').length, 3, 'All three stoves cook at once.');
   complete(state, state.effects.cookSeconds + 0.01);
   equal(state.stoves.filter((stove) => stove.state === 'ready').length, 3, 'All stoves become ready.');
@@ -129,6 +144,7 @@ function testBatterAndStoves() {
   equal(Sim.applyAction(state, 'p2', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).code, 'taken', 'Serve race has one winner.');
   complete(state, state.effects.serveSeconds + 0.01);
   equal(state.stats.served, 1, 'Serving increments correct orders.');
+  equal(state.tutorial.served, true, 'Tutorial records the first served crepe.');
   complete(state, state.effects.eatSeconds + 0.01);
   truthy(state.stats.coins >= 10, 'Customer eats and pays.');
 }
@@ -207,6 +223,8 @@ function testDeterminism() {
     Sim.applyAction(state, 'p1', C.ACTIONS.PLANT, { plotId: 'plot-1', crop: 'blackberry' });
     Sim.advance(state, 1, dt);
     Sim.applyAction(state, 'p2', C.ACTIONS.PICKUP_PAIL);
+    Sim.applyAction(state, 'p2', C.ACTIONS.FILL_PAIL);
+    Sim.advance(state, state.effects.fillPailSeconds + 0.1, dt);
     Sim.applyAction(state, 'p2', C.ACTIONS.WATER, { plotId: 'plot-1' });
     Sim.advance(state, 20, dt);
     Sim.applyAction(state, 'p1', C.ACTIONS.HARVEST, { plotId: 'plot-1' });

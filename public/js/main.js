@@ -294,7 +294,9 @@ class Game {
   shouldHold(target) {
     if (!target || target.type !== 'plot' || !this.state.snapshot) return false;
     const plot = this.state.snapshot.plots.find((item) => item.id === target.id);
-    return !!plot && plot.state === 'dry' && this.state.snapshot.pail.holder === this.state.session.playerId;
+    return !!plot && plot.state === 'dry'
+      && this.state.snapshot.pail.holder === this.state.session.playerId
+      && this.state.snapshot.pail.water > 0;
   }
 
   showHoldProgress(show) {
@@ -307,10 +309,14 @@ class Game {
     if (target.type === 'plot') {
       const plot = this.state.snapshot.plots.find((item) => item.id === target.id);
       if (!plot) return;
-      if (plot.state === 'empty') return this.ui.chooseCrop(plot.id);
+      if (plot.state === 'empty') {
+        if (this.state.snapshot.pail.holder === this.state.session.playerId) return this.ui.toast('Put down the pail before planting.', true);
+        return this.ui.chooseCrop(plot.id);
+      }
       if (plot.state === 'dry') {
         if (!held) {
           const hasPail = this.state.snapshot.pail.holder === this.state.session.playerId;
+          if (hasPail && this.state.snapshot.pail.water <= 0) return this.ui.toast('The pail is empty. Fill it at the kitchen sink.', true);
           return this.ui.toast(hasPail ? 'Hold down on the crop to water it.' : 'Pick up the pail, then hold this crop to water.', true);
         }
         return this.sendAction(C.ACTIONS.WATER, { plotId: plot.id }, Audio.sfx.water);
@@ -322,6 +328,7 @@ class Game {
       const mine = this.state.snapshot.pail.holder === this.state.session.playerId;
       return this.sendAction(mine ? C.ACTIONS.DROP_PAIL : C.ACTIONS.PICKUP_PAIL, {}, Audio.sfx.tap);
     }
+    if (target.type === 'sink') return this.sendAction(C.ACTIONS.FILL_PAIL, {}, Audio.sfx.water);
     if (target.type === 'cow') return this.sendAction(C.ACTIONS.MILK, {}, Audio.sfx.milk);
     if (target.type === 'mixer') return this.sendAction(C.ACTIONS.MIX_BATTER, {}, Audio.sfx.tap);
     if (target.type === 'stove') {

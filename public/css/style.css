@@ -96,6 +96,21 @@ button { cursor: pointer; }
 .fridge-strip { position: absolute; left: max(8px, env(safe-area-inset-left)); top: calc(126px + env(safe-area-inset-top)); display: flex; gap: 5px; padding: 6px; border-radius: 14px; pointer-events: none; }
 .resource-chip { min-width: 52px; padding: 5px 7px; border-radius: 10px; background: rgba(255,255,255,.62); text-align: center; font-size: 11px; font-weight: 900; }
 .resource-chip span { display: block; color: var(--ink-soft); font-size: 9px; }
+.tutorial-panel { position: absolute; left: max(8px, env(safe-area-inset-left)); top: calc(178px + env(safe-area-inset-top)); width: min(350px, 42vw); max-height: calc(100vh - 270px); overflow: hidden; border: 2px solid rgba(255,255,255,.8); border-radius: 18px; background: rgba(255,248,232,.9); box-shadow: 0 8px 24px rgba(49,27,15,.28); pointer-events: none; }
+.tutorial-panel header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: #f0ddb5; }
+.tutorial-panel header strong { display: block; }
+.tutorial-panel header button { width: 38px; height: 38px; border: 0; border-radius: 10px; background: white; color: var(--ink); font-weight: 900; pointer-events: auto; }
+.tutorial-list { max-height: calc(100vh - 330px); overflow-y: auto; padding: 7px; pointer-events: auto; touch-action: pan-y; overscroll-behavior: contain; }
+.tutorial-task { display: grid; grid-template-columns: 30px 1fr; gap: 7px; padding: 8px; border-radius: 12px; color: var(--ink-soft); }
+.tutorial-task + .tutorial-task { border-top: 1px solid #e5d4af; }
+.tutorial-task.next { background: #fff1c7; color: var(--ink); box-shadow: inset 0 0 0 2px #e8af35; }
+.tutorial-task.done { color: #4b7650; }
+.tutorial-check { display: grid; place-items: center; width: 26px; height: 26px; border: 2px solid #bda77c; border-radius: 50%; background: white; font-weight: 900; }
+.tutorial-task.done .tutorial-check { border-color: var(--green); background: var(--green); color: white; }
+.tutorial-task strong { display: block; font-size: 13px; }
+.tutorial-task p { margin: 2px 0 0; font-size: 11px; line-height: 1.35; }
+.tutorial-panel.collapsed { width: 250px; }
+.tutorial-panel.collapsed .tutorial-list { display: none; }
 #game-bottom { position: absolute; left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); min-height: 58px; border-radius: 18px; padding: 8px 12px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; pointer-events: none; }
 .ping-row { display: flex; gap: 5px; pointer-events: auto; }
 .ping-row button { min-height: var(--hit); padding: 0 10px; border: 0; border-radius: 11px; background: #e9d8b7; color: var(--ink); font-size: 11px; font-weight: 800; }
@@ -154,6 +169,8 @@ body.reduced-motion .toast.reject { animation: none; }
   #day-timer { font-size: 25px; }
   .order-ticket { min-height: 78px; }
   .fridge-strip { top: calc(106px + env(safe-area-inset-top)); }
+  .tutorial-panel { top: calc(152px + env(safe-area-inset-top)); max-height: calc(100vh - 185px); }
+  .tutorial-list { max-height: calc(100vh - 245px); }
   .resource-chip { min-width: 45px; }
 }
 @media (prefers-reduced-motion: reduce) {

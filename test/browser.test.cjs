@@ -23,6 +23,8 @@ function browserExecutable() {
 async function clickTarget(page, type, id, holdMs) {
   const point = await page.evaluate(({ type, id }) => window.game.render.clientPointForTarget(type, id), { type, id });
   assert.ok(point, 'Target should project into the canvas: ' + type + ':' + id);
+  const picked = await page.evaluate(({ point }) => window.game.render.pick(point.x, point.y), { point });
+  assert.deepStrictEqual(picked, { type, id }, 'Projected point should raycast the requested target.');
   await page.evaluate(async ({ point, holdMs }) => {
     const canvas = document.getElementById('game-canvas');
     const init = { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch', clientX: point.x, clientY: point.y };
@@ -81,9 +83,12 @@ async function clickTarget(page, type, id, holdMs) {
     await host.click('#start-day');
     await host.waitForSelector('#screen-game.active');
     await guest.waitForSelector('#screen-game.active');
+    await host.waitForSelector('#tutorial-panel:not(.hidden)');
+    assert.match(await host.textContent('#tutorial-list'), /Plant the ingredients/);
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
     room.state.effects.waterSeconds = 0.1;
+    room.state.effects.fillPailSeconds = 0.1;
     room.state.effects.harvestSeconds = 0.1;
     room.state.effects.growthMultiplier = 0.08;
 
@@ -93,6 +98,9 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'dry');
     await clickTarget(host, 'pail', 'pail');
     await host.waitForFunction(() => window.game.state.snapshot.pail.holder === window.game.state.session.playerId);
+    await clickTarget(host, 'sink', 'sink');
+    await host.waitForFunction(() => window.game.state.snapshot.pail.water === 5);
+    await host.waitForFunction(() => document.querySelectorAll('#tutorial-list .tutorial-task.done').length >= 1);
     await clickTarget(host, 'plot', 'plot-1', 650);
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'growing');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'ripe', null, { timeout: 7000 });

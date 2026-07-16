@@ -110,22 +110,29 @@ function kitchenAction(state, playerId) {
 function gardenAction(state, playerId) {
   const player = state.players[playerId];
   if (player.task) return false;
-  if (!state.pail.holder) return act(state, playerId, C.ACTIONS.PICKUP_PAIL).ok;
-  if (state.pail.holder === playerId) {
-    const dry = state.plots
-      .filter((plot) => plot.state === 'dry' && !plot.lockedBy)
-      .sort((a, b) => C.CROPS[b.crop].growSeconds - C.CROPS[a.crop].growSeconds)[0];
-    if (dry) return act(state, playerId, C.ACTIONS.WATER, { plotId: dry.id }).ok;
-  }
   const uninitialized = state.plots.find((plot) => {
     state._botInitialized = state._botInitialized || new Set();
     return plot.state === 'empty' && !plot.lockedBy && !state._botInitialized.has(plot.id);
   });
-  if (uninitialized) return plantDesired(state, playerId, uninitialized);
+  if (uninitialized) {
+    if (state.pail.holder === playerId) return act(state, playerId, C.ACTIONS.DROP_PAIL).ok;
+    return plantDesired(state, playerId, uninitialized);
+  }
   const ripe = state.plots.find((plot) => plot.state === 'ripe' && !plot.lockedBy);
   if (ripe) return act(state, playerId, C.ACTIONS.HARVEST, { plotId: ripe.id }).ok;
+  const dry = state.plots
+    .filter((plot) => plot.state === 'dry' && !plot.lockedBy)
+    .sort((a, b) => C.CROPS[b.crop].growSeconds - C.CROPS[a.crop].growSeconds)[0];
+  if (dry) {
+    if (!state.pail.holder) return act(state, playerId, C.ACTIONS.PICKUP_PAIL).ok;
+    if (state.pail.holder === playerId && state.pail.water <= 0) return act(state, playerId, C.ACTIONS.FILL_PAIL).ok;
+    if (state.pail.holder === playerId) return act(state, playerId, C.ACTIONS.WATER, { plotId: dry.id }).ok;
+  }
   const empty = plantablePlot(state);
-  if (empty) return plantDesired(state, playerId, empty);
+  if (empty) {
+    if (state.pail.holder === playerId) return act(state, playerId, C.ACTIONS.DROP_PAIL).ok;
+    return plantDesired(state, playerId, empty);
+  }
   return kitchenAction(state, playerId);
 }
 
