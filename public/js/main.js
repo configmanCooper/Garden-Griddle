@@ -1,0 +1,305 @@
+import { Render3D } from './render3d.js';
+import { Input } from './input.js';
+import { UI } from './ui.js';
+import { Net } from './net.js';
+import { State } from './state.js';
+import * as Save from './save.js';
+import * as Audio from './audio.js';
+
+const C = window.GG.Constants;
+
+class Game {
+  constructor() {
+    this.state = State;
+    this.save = Save.load();
+    this.pendingInvite = this.parseInvite();
+    this.net = new Net();
+    this.ui = new UI(this);
+    this.ui.setTitleValues(this.save, this.net.serverUrl);
+    Audio.configure(this.save.settings);
+    try {
+      this.render = new Render3D(document.getElementById('game-canvas'));
+    } catch (error) {
+      if (error.message === 'WEBGL2_UNAVAILABLE') document.getElementById('unsupported').classList.remove('hidden');
+      throw error;
+    }
+    this.input = new Input(document.getElementById('game-canvas'), this.render, this);
+    this.bindNetwork();
+    this.bindGlobal();
+    this.lastSnapshotEventCount = 0;
+    window.game = this;
+    requestAnimationFrame((time) => this.loop(time));
+  }
+
+  bindGlobal() {
+    window.addEventListener('pointerdown', () => Audio.unlock(), { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.state.screen === 'game') this.net.requestSnapshot();
+    });
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'Escape') this.clearSelection();
+      if (event.code === 'Space' && this.state.screen === 'game') this.pause();
+    });
+  }
+
+  bindNetwork() {
+    this.net.on('status', (status) => {
+      this.state.connected = status.state === 'connected';
+      if (status.state !== 'connected' && this.state.session) this.state.rejoining = true;
+      this.ui.setConnection(status);
+      if (status.state === 'connected' && this.state.session) {
+        this.net.join(this.state.session.code, this.save.playerName, this.state.session.inviteToken);
+      }
+    });
+    this.net.on(C.EVENTS.SESSION, (session) => {
+      this.state.session = session;
+      this.net.setSequence(session.lastSeq);
+      Save.storeSession(session.code, session.sessionToken);
+      this.syncCampaign(session.campaign);
+      this.ui.show('room');
+    });
+    this.net.on(C.EVENTS.ROOM_UPDATE, (room) => {
+      this.state.room = room;
+      this.syncCampaign(room.campaign);
+      this.ui.updateRoom(room, this.state.session);
+      if (room.status === 'lobby' || room.status === 'results') {
+        if (this.state.screen !== 'results') this.ui.show('room');
+      }
+    });
+    this.net.on(C.EVENTS.DAY_STARTED, () => {
+      this.state.selectedOrderId = null;
+      this.ui.show('game');
+      this.ui.toast('The restaurant is open!');
+    });
+    this.net.on(C.EVENTS.SNAPSHOT, (snapshot) => {
+      if (this.state.selectedOrderId) {
+        const selected = snapshot.orders.find((order) => order.id === this.state.selectedOrderId);
+        if (!selected || selected.status !== 'waiting') this.state.selectedOrderId = null;
+      }
+      const priorEvents = this.state.snapshot ? this.state.snapshot.events.length : 0;
+      this.state.snapshot = snapshot;
+      this.state.rejoining = false;
+      this.ui.updateSnapshot(snapshot, this.state);
+      this.playNewEvents(snapshot, priorEvents);
+    });
+    this.net.on(C.EVENTS.ACTION_RESULT, (result) => {
+      this.state.lastActionResult = result;
+      if (!result.ok) {
+        Audio.sfx.deny();
+        Audio.vibrate(30);
+        this.ui.toast(result.reason || 'Your partner got there first.', true);
+      }
+    });
+    this.net.on(C.EVENTS.DAY_ENDED, (payload) => {
+      this.syncCampaign(payload.campaign);
+      Audio.sfx.star();
+      this.ui.results(payload);
+    });
+    this.net.on(C.EVENTS.CAMPAIGN_UPDATE, ({ campaign }) => {
+      this.syncCampaign(campaign);
+      if (this.state.room) this.state.room.campaign = campaign;
+      this.ui.updateRoom(this.state.room, this.state.session);
+    });
+    this.net.on(C.EVENTS.PAUSE_UPDATE, (payload) => {
+      this.state.paused = payload.paused;
+      this.ui.setPaused(payload.paused, payload.vote);
+    });
+    this.net.on(C.EVENTS.PARTNER_PING, (payload) => {
+      const labels = { garden: 'Partner: I will handle the garden', cook: 'Partner: I will cook', milk: 'Partner needs milk', rush: 'Partner: rush order!' };
+      this.ui.toast(labels[payload.kind] || 'Partner ping');
+    });
+    this.net.on(C.EVENTS.ERROR, (payload) => this.ui.toast(payload.reason || payload.msg || 'Server error', true));
+    this.net.on(C.EVENTS.ROOM_ABORTED, (payload) => {
+      this.state.session = null;
+      this.state.room = null;
+      this.state.snapshot = null;
+      this.ui.show('title');
+      this.ui.toast((payload.reason || 'Room closed') + ' - no progress was awarded.', true);
+    });
+  }
+
+  playNewEvents(snapshot, previousLength) {
+    const events = snapshot.events || [];
+    for (const event of events.slice(Math.max(0, previousLength))) {
+      if (event.type === 'cropReady' || event.type === 'crepeReady') Audio.sfx.ready();
+      else if (event.type === 'harvested') Audio.sfx.harvest();
+      else if (event.type === 'milked') Audio.sfx.milk();
+      else if (event.type === 'served') Audio.sfx.serve();
+    }
+  }
+
+  parseInvite() {
+    const parts = location.pathname.match(/\/join\/([A-Z0-9]{6})/i);
+    const query = new URLSearchParams(location.search);
+    const code = parts ? parts[1].toUpperCase() : query.get('room');
+    const inviteToken = query.get('invite') || '';
+    if (code) document.addEventListener('DOMContentLoaded', () => { document.getElementById('room-code-input').value = code; });
+    return code ? { code, inviteToken } : null;
+  }
+
+  playerName() {
+    const name = document.getElementById('player-name').value.trim() || 'Player';
+    this.save.playerName = name;
+    Save.write(this.save);
+    return name;
+  }
+
+  async createRoom() {
+    Audio.unlock();
+    const result = await this.net.create(this.playerName(), this.save.campaign);
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async joinRoom() {
+    Audio.unlock();
+    const input = document.getElementById('room-code-input');
+    const code = (this.pendingInvite && this.pendingInvite.code) || input.value.trim().toUpperCase();
+    const invite = this.pendingInvite && this.pendingInvite.code === code ? this.pendingInvite.inviteToken : '';
+    if (code.length !== 6) return this.ui.toast('Enter the six-character room code.', true);
+    const result = await this.net.join(code, this.playerName(), invite);
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async startDay(level) {
+    const result = await this.net.start(level);
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async buyUpgrade(id) {
+    const result = await this.net.buyUpgrade(id);
+    if (!result.ok) this.ui.toast(result.reason, true);
+    else {
+      Audio.sfx.tap();
+      this.ui.toast('Upgrade purchased!');
+    }
+  }
+
+  saveServer() {
+    const url = document.getElementById('server-url').value.trim().replace(/\/$/, '');
+    Save.storeServerUrl(url);
+    location.reload();
+  }
+
+  async shareRoom() {
+    if (!this.state.session) return;
+    const text = 'Join my Garden & Griddle restaurant: ' + this.state.session.inviteUrl;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Garden & Griddle', text, url: this.state.session.inviteUrl });
+      else {
+        await navigator.clipboard.writeText(this.state.session.inviteUrl);
+        this.ui.toast('Invite link copied!');
+      }
+    } catch (_error) {}
+  }
+
+  syncCampaign(campaign) {
+    if (!campaign) return;
+    this.save.campaign = window.GG.Schema.normalizeCampaign(campaign);
+    Save.write(this.save);
+  }
+
+  isPlaying() {
+    return this.state.screen === 'game' && !!this.state.snapshot && this.state.snapshot.status === 'playing'
+      && this.state.connected && !this.state.rejoining && !this.state.paused;
+  }
+
+  shouldHold(target) {
+    if (!target || target.type !== 'plot' || !this.state.snapshot) return false;
+    const plot = this.state.snapshot.plots.find((item) => item.id === target.id);
+    return !!plot && plot.state === 'dry' && this.state.snapshot.pail.holder === this.state.session.playerId;
+  }
+
+  showHoldProgress(show) {
+    this.ui.setProgress(show, show ? 0.45 : 0);
+  }
+
+  interact(target, held) {
+    if (!target || !this.state.snapshot) return;
+    Audio.unlock();
+    if (target.type === 'plot') {
+      const plot = this.state.snapshot.plots.find((item) => item.id === target.id);
+      if (!plot) return;
+      if (plot.state === 'empty') return this.ui.chooseCrop(plot.id);
+      if (plot.state === 'dry') {
+        if (!held) {
+          const hasPail = this.state.snapshot.pail.holder === this.state.session.playerId;
+          return this.ui.toast(hasPail ? 'Hold down on the crop to water it.' : 'Pick up the pail, then hold this crop to water.', true);
+        }
+        return this.sendAction(C.ACTIONS.WATER, { plotId: plot.id }, Audio.sfx.water);
+      }
+      if (plot.state === 'ripe') return this.sendAction(C.ACTIONS.HARVEST, { plotId: plot.id }, Audio.sfx.harvest);
+      return this.ui.toast('This crop is still growing.');
+    }
+    if (target.type === 'pail') {
+      const mine = this.state.snapshot.pail.holder === this.state.session.playerId;
+      return this.sendAction(mine ? C.ACTIONS.DROP_PAIL : C.ACTIONS.PICKUP_PAIL, {}, Audio.sfx.tap);
+    }
+    if (target.type === 'cow') return this.sendAction(C.ACTIONS.MILK, {}, Audio.sfx.milk);
+    if (target.type === 'mixer') return this.sendAction(C.ACTIONS.MIX_BATTER, {}, Audio.sfx.tap);
+    if (target.type === 'stove') {
+      const stove = this.state.snapshot.stoves.find((item) => item.id === target.id);
+      if (stove.state === 'empty') {
+        if (!this.state.selectedOrderId) return this.ui.toast('Select an order ticket first.', true);
+        const orderId = this.state.selectedOrderId;
+        this.state.selectedOrderId = null;
+        return this.sendAction(C.ACTIONS.START_CREPE, { stoveId: stove.id, orderId }, Audio.sfx.cook);
+      }
+      if (stove.state === 'ready') return this.sendAction(C.ACTIONS.SERVE_CREPE, { stoveId: stove.id }, Audio.sfx.serve);
+      if (stove.state === 'burnt') return this.sendAction(C.ACTIONS.CLEAR_BURNT, { stoveId: stove.id }, Audio.sfx.tap);
+      return this.ui.toast('That crepe is cooking.');
+    }
+    this.clearSelection();
+  }
+
+  plant(plotId, crop) {
+    this.sendAction(C.ACTIONS.PLANT, { plotId, crop }, Audio.sfx.plant);
+  }
+
+  selectOrder(orderId) {
+    this.state.selectedOrderId = this.state.selectedOrderId === orderId ? null : orderId;
+    this.ui.updateSnapshot(this.state.snapshot, this.state);
+  }
+
+  clearSelection() {
+    this.state.selectedOrderId = null;
+    if (this.state.snapshot) this.ui.updateSnapshot(this.state.snapshot, this.state);
+  }
+
+  dropHeldItem() {
+    if (!this.state.snapshot || this.state.snapshot.pail.holder !== this.state.session.playerId) return;
+    this.sendAction(C.ACTIONS.DROP_PAIL, {}, Audio.sfx.tap);
+  }
+
+  async sendAction(action, payload, sound) {
+    const result = await this.net.action(action, payload);
+    if (result.ok) {
+      if (sound) sound();
+      Audio.vibrate(10);
+    } else {
+      Audio.sfx.deny();
+      this.ui.toast(result.reason || 'Action rejected.', true);
+    }
+    return result;
+  }
+
+  async pause() {
+    if (!this.state.room) return;
+    const result = this.state.paused || (document.getElementById('pause-banner').textContent.includes('requested'))
+      ? await this.net.votePause(true)
+      : await this.net.pause();
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  ping(kind) {
+    this.net.ping(kind);
+    this.ui.toast('Ping sent');
+  }
+
+  loop(time) {
+    if (this.state.snapshot) this.render.update(this.state.snapshot, this.state.session);
+    this.render.render(time);
+    requestAnimationFrame((next) => this.loop(next));
+  }
+}
+
+new Game();

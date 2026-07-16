@@ -9,13 +9,15 @@
     "dev": "node server.js",
     "test": "node test/run.js",
     "test:core": "node test/core.test.js",
-    "test:server": "node test/server.test.js"
+    "test:server": "node test/server.test.js",
+    "test:browser": "node test/browser.test.cjs"
   },
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "playwright-core": "^1.61.1",
     "socket.io-client": "^4.8.1"
   },
   "license": "UNLICENSED"

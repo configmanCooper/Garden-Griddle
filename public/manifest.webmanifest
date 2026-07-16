@@ -1,0 +1,12 @@
+{
+  "name": "Garden & Griddle",
+  "short_name": "Garden & Griddle",
+  "description": "A two-player cooperative crepe restaurant and garden game.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#493224",
+  "theme_color": "#493224",
+  "icons": []
+}
+

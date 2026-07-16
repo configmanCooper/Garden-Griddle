@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#493224">
+  <title>Garden &amp; Griddle</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <canvas id="game-canvas" aria-label="Garden and restaurant game"></canvas>
+
+  <main id="ui-root">
+    <section id="screen-title" class="screen active">
+      <div class="title-card">
+        <div class="brand-mark" aria-hidden="true"><span>G</span><b>&amp;</b><span>G</span></div>
+        <h1>Garden &amp; Griddle</h1>
+        <p>Grow together. Cook together. Keep the crepes coming.</p>
+        <label class="field">Your name
+          <input id="player-name" maxlength="20" autocomplete="nickname" placeholder="Player">
+        </label>
+        <div class="title-actions">
+          <button id="create-room" class="btn primary">Create Restaurant</button>
+          <div class="join-row">
+            <input id="room-code-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ROOM CODE">
+            <button id="join-room" class="btn">Join</button>
+          </div>
+        </div>
+        <details class="server-settings">
+          <summary>Server connection</summary>
+          <label class="field">Server URL
+            <input id="server-url" type="url" placeholder="Same site">
+          </label>
+          <button id="save-server" class="btn small">Save server</button>
+        </details>
+        <div id="connection-title" class="status-line">Connecting...</div>
+      </div>
+    </section>
+
+    <section id="screen-room" class="screen">
+      <div class="room-shell">
+        <header class="room-header">
+          <div>
+            <span class="eyebrow">Restaurant room</span>
+            <strong id="room-code">------</strong>
+          </div>
+          <div class="header-actions">
+            <button id="share-room" class="btn small">Share invite</button>
+            <button id="open-shop" class="btn small">Upgrades</button>
+          </div>
+        </header>
+        <div id="player-list" class="player-list"></div>
+        <div class="campaign-card">
+          <div class="campaign-top">
+            <div><span class="eyebrow">Campaign stars</span><strong id="campaign-stars">0</strong></div>
+            <div><span class="eyebrow">Selected day</span><strong id="selected-level-label">1</strong></div>
+          </div>
+          <input id="level-select" type="range" min="1" max="1" value="1" aria-label="Select day">
+          <div id="level-stars" class="level-stars"></div>
+          <button id="start-day" class="btn primary">Open for the Day</button>
+          <p id="room-hint">Waiting for your partner...</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-game" class="screen game-screen">
+      <header id="game-top">
+        <div id="orders" class="orders" aria-label="Customer orders"></div>
+        <div class="day-status">
+          <div id="day-timer">3:00</div>
+          <div id="live-stars" aria-label="Current stars">☆☆☆</div>
+          <div id="serve-score">0 / 0 served</div>
+        </div>
+        <div class="partner-card">
+          <span id="connection-dot" class="connection-dot"></span>
+          <div><strong id="partner-name">Partner</strong><small id="partner-status">Connected</small></div>
+          <button id="pause-game" class="icon-btn" aria-label="Pause">II</button>
+        </div>
+      </header>
+
+      <div id="fridge-strip" class="fridge-strip"></div>
+      <div id="game-bottom">
+        <div class="ping-row">
+          <button data-ping="garden">Garden</button>
+          <button data-ping="cook">Cooking</button>
+          <button data-ping="milk">Need milk</button>
+          <button data-ping="rush">Rush!</button>
+        </div>
+        <button id="held-item" class="held-item">Hands free</button>
+        <div id="selection-status" class="selection-status">Tap something to help.</div>
+      </div>
+      <div id="action-progress" class="action-progress hidden"><span></span></div>
+      <div id="pause-banner" class="pause-banner hidden">Day paused</div>
+    </section>
+
+    <section id="screen-results" class="screen overlay-screen">
+      <div class="modal-card results-card">
+        <span class="eyebrow">Day complete</span>
+        <h2 id="result-title">Great teamwork!</h2>
+        <div id="result-stars" class="result-stars">☆☆☆</div>
+        <p id="result-score"></p>
+        <p id="result-earned"></p>
+        <div class="modal-actions">
+          <button id="results-shop" class="btn">Spend Stars</button>
+          <button id="results-room" class="btn primary">Back to Room</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="crop-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h2>Choose a crop</h2>
+      <div id="crop-options" class="crop-grid"></div>
+      <button class="btn modal-close">Cancel</button>
+    </div>
+  </div>
+
+  <div id="shop-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card shop-card">
+      <header><h2>Star Upgrades</h2><strong id="shop-stars">0 stars</strong></header>
+      <div id="shop-grid" class="shop-grid"></div>
+      <button class="btn modal-close">Close</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="rotate-gate"><div><strong>Turn your phone sideways</strong><span>Garden &amp; Griddle is designed for landscape play.</span></div></div>
+  <div id="unsupported" class="unsupported hidden"><h1>WebGL2 is needed</h1><p>Please update Android System WebView or use a newer browser.</p></div>
+
+  <script src="shared/constants.js?v=1"></script>
+  <script src="shared/balance.js?v=1"></script>
+  <script src="shared/rng.js?v=1"></script>
+  <script src="shared/schema.js?v=1"></script>
+  <script src="js/vendor/socket.io.min.js?v=1"></script>
+  <script type="module" src="js/main.js?v=1"></script>
+</body>
+</html>

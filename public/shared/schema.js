@@ -45,9 +45,10 @@
     };
   }
 
-  function makePlayer(id, name, color, pattern) {
+  function makePlayer(id, name, color, pattern, seat) {
     return {
       id,
+      seat,
       name: String(name || 'Player').slice(0, 20),
       color,
       pattern,
@@ -73,7 +74,8 @@
         id,
         opts.playerNames && opts.playerNames[index],
         index === 0 ? '#e45b5b' : '#4f91d9',
-        index === 0 ? 'stripe' : 'dot'
+        index === 0 ? 'stripe' : 'dot',
+        Array.isArray(opts.playerSeats) ? opts.playerSeats[index] : index
       );
     });
     const seeds = {};

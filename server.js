@@ -21,7 +21,7 @@ function createGameServer(options) {
   const server = http.createServer(app);
   const allowedOrigins = opts.allowedOrigins || parseOrigins(process.env.ALLOWED_ORIGINS);
   const allowOrigin = (origin, callback) => {
-    if (!origin || /^https:\/\/localhost$/i.test(origin) || /^http:\/\/localhost(?::\d+)?$/i.test(origin)) return callback(null, true);
+    if (!origin || /^https:\/\/localhost$/i.test(origin) || /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(origin)) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error('Origin not allowed.'));
   };
@@ -102,4 +102,3 @@ if (require.main === module) {
 }
 
 module.exports = { createGameServer };
-

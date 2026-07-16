@@ -118,6 +118,7 @@ class RoomManager {
         if (!room.state.players[player.id]) {
           room.state.players[player.id] = {
             id: player.id,
+            seat: player.seat,
             name: player.name,
             color: player.seat === 0 ? '#e45b5b' : '#4f91d9',
             pattern: player.seat === 0 ? 'stripe' : 'dot',
@@ -153,6 +154,7 @@ class RoomManager {
     if (room.state && room.status === 'playing') {
       room.state.players[pid] = {
         id: pid,
+        seat,
         name: player.name,
         color: seat === 0 ? '#e45b5b' : '#4f91d9',
         pattern: seat === 0 ? 'stripe' : 'dot',
@@ -229,7 +231,8 @@ class RoomManager {
       sessionToken: token,
       inviteToken: room.inviteToken,
       inviteUrl,
-      campaign: room.campaign
+      campaign: room.campaign,
+      lastSeq: player.lastSeq
     });
   }
 
@@ -277,6 +280,7 @@ class RoomManager {
       seed: crypto.randomBytes(4).readUInt32LE(0),
       playerIds: active.map((item) => item.id),
       playerNames: active.map((item) => item.name),
+      playerSeats: active.map((item) => item.seat),
       upgrades: room.campaign.upgrades
     });
     room.status = 'playing';
