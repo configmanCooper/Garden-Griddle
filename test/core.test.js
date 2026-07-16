@@ -99,8 +99,8 @@ function testBatterAndStoves() {
   state.fridge.strawberry = 20;
   truthy(Sim.applyAction(state, 'p1', C.ACTIONS.MIX_BATTER).ok, 'Mixer starts with correct ingredients.');
   equal(state.fridge.flour, 17, 'Mixer consumes flour.');
-  equal(state.fridge.sugar, 18, 'Mixer consumes sugar.');
-  equal(state.fridge.milk, 16, 'Mixer consumes milk.');
+  equal(state.fridge.sugar, 17, 'Mixer consumes sugar.');
+  equal(state.fridge.milk, 17, 'Mixer consumes milk.');
   complete(state, state.effects.mixSeconds + 0.01);
   equal(state.batter, 10, 'One batch makes ten crepes.');
   complete(state, 0.1);

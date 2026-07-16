@@ -96,8 +96,8 @@ The fridge tracks:
 One batter batch costs:
 
 - 3 flour
-- 2 sugar
-- 4 milk
+- 3 sugar
+- 3 milk
 
 The mixer takes 3 seconds and creates 10 batter portions. Batter is shared and has a visible gauge. The batch-size upgrade can increase the number of portions produced.
 

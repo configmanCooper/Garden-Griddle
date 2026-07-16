@@ -38,7 +38,7 @@
     milkRecharge: 3
   };
 
-  const BATTER_COST = { flour: 3, sugar: 2, milk: 4 };
+  const BATTER_COST = { flour: 3, sugar: 3, milk: 3 };
   const BATTER_YIELD = 10;
   const MAX_UPGRADE_TIER = 5;
   const UPGRADE_COSTS = [1, 2, 3, 4, 5];
