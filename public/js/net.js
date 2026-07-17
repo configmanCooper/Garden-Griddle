@@ -12,12 +12,19 @@ function detectServer() {
   return capacitorLocal ? DEFAULT_SERVER : '';
 }
 
+function socketUrl(serverUrl) {
+  const target = new URL(serverUrl || location.origin, location.href);
+  // Render's edge requires a leading application query before Engine.IO's EIO/transport parameters.
+  target.searchParams.set('ggClient', '1');
+  return target.toString();
+}
+
 export class Net {
   constructor() {
     this.serverUrl = detectServer();
     this.handlers = new Map();
     this.seq = 0;
-    this.socket = window.io(this.serverUrl || undefined, {
+    this.socket = window.io(socketUrl(this.serverUrl), {
       path: '/gg-realtime',
       transports: ['websocket', 'polling'],
       auth: { protocol: C.PROTOCOL, clientBuild: C.CLIENT_BUILD },
