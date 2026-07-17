@@ -119,7 +119,7 @@ async function clickTarget(page, type, id, holdMs) {
     await clickTarget(host, 'sink', 'sink');
     await host.waitForFunction(() => window.game.state.snapshot.pail.water === 5);
     await host.waitForFunction(() => document.querySelectorAll('#tutorial-list .tutorial-task.done').length >= 1);
-    await clickTarget(host, 'plot', 'plot-1', 650);
+    await clickTarget(host, 'plot', 'plot-1');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'growing');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'ripe', null, { timeout: 7000 });
     await clickTarget(host, 'plot', 'plot-1');

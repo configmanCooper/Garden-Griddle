@@ -472,28 +472,40 @@ export class Render3D {
 
   _buildPlayers() {
     const configs = [
-      { color: 0xe45b5b, x: -2.5, z: -1 },
-      { color: 0x4f91d9, x: -2.5, z: 1 }
+      { color: 0xe45b5b, apron: 0xffe1bd, x: -2.5, z: -1 },
+      { color: 0x4f91d9, apron: 0xd9efff, x: -2.5, z: 1 }
     ];
-    configs.forEach((config, index) => {
-      const group = new THREE.Group();
-      const body = mesh(new THREE.CylinderGeometry(0.38, 0.48, 1.15, 14), config.color);
-      body.position.y = 0.85;
-      group.add(body);
-      const apron = mesh(new THREE.BoxGeometry(0.5, 0.65, 0.08), index === 0 ? 0xffe9d0 : 0xe7f3ff);
-      apron.position.set(0, 0.84, 0.42);
-      group.add(apron);
-      const head = mesh(new THREE.SphereGeometry(0.35, 14, 10), 0xf1c9a3);
-      head.position.y = 1.62;
-      group.add(head);
-      const hat = mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.34, 14), 0xfffbef);
-      hat.position.y = 2;
-      group.add(hat);
-      group.position.set(config.x, 0, config.z);
-      group.userData.targetPosition = group.position.clone();
-      this.playerViews.set(index, group);
-      this.scene.add(group);
+    const torsoMeshes = configs.map((config) => {
+      const torso = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.36, 0.5, 6, 12), material(config.color), 1);
+      torso.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      torso.frustumCulled = false;
+      return torso;
     });
+    const headMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.34, 16, 11), material(0xf1c9a3), 2);
+    const armMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.085, 0.1, 0.78, 9), material(0xf1c9a3), 4);
+    const legMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.13, 0.76, 9), material(0x4b403a), 4);
+    const eyeMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.045, 8, 6), material(0x17120f), 4);
+    const apronMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.58, 0.7, 0.08), material(0xffffff), 2);
+    const hatMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.38, 14, 9), material(0xfffbef), 2);
+    for (const instanced of [headMesh, armMesh, legMesh, eyeMesh, apronMesh, hatMesh]) {
+      instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      instanced.frustumCulled = false;
+    }
+    configs.forEach((config, index) => {
+      apronMesh.setColorAt(index, new THREE.Color(config.apron));
+      this.playerViews.set(index, {
+        seat: index,
+        position: new THREE.Vector3(config.x, 0, config.z),
+        targetPosition: new THREE.Vector3(config.x, 0, config.z),
+        rotationY: Math.PI / 2,
+        visible: true,
+        moving: false,
+        taskKind: null
+      });
+      apronMesh.instanceColor.needsUpdate = true;
+    });
+    this.playerMeshes = { torsoMeshes, headMesh, armMesh, legMesh, eyeMesh, apronMesh, hatMesh };
+    this.scene.add(...torsoMeshes, headMesh, armMesh, legMesh, eyeMesh, apronMesh, hatMesh);
   }
 
   _makeToppingAtlas() {
@@ -676,7 +688,9 @@ export class Render3D {
     if (snapshot.pail.holder && snapshot.players[snapshot.pail.holder]) {
       const holder = snapshot.players[snapshot.pail.holder];
       const avatar = this.playerViews.get(holder ? holder.seat : 0);
-      pail.position.lerp(new THREE.Vector3(avatar.position.x + 0.65, 0.6, avatar.position.z), 0.28);
+      const handOffset = new THREE.Vector3(0.52, 0.68, 0.12).applyAxisAngle(new THREE.Vector3(0, 1, 0), avatar.rotationY);
+      pail.position.lerp(avatar.position.clone().add(handOffset), 0.28);
+      pail.rotation.y += (avatar.rotationY - pail.rotation.y) * 0.25;
     } else {
       pail.position.lerp(new THREE.Vector3(-4.3, 0, 4.7), 0.18);
     }
@@ -740,10 +754,15 @@ export class Render3D {
       if (!avatar) return;
       avatar.visible = player.connected;
       const target = this._positionForAction(player.lastAction);
-      if (target) avatar.userData.targetPosition.copy(target);
-      avatar.position.lerp(avatar.userData.targetPosition, 0.1);
-      avatar.position.y = this.reducedMotion ? 0 : Math.abs(Math.sin(performance.now() * 0.007 + player.seat)) * 0.025;
+      if (target) avatar.targetPosition.copy(target);
+      const deltaX = avatar.targetPosition.x - avatar.position.x;
+      const deltaZ = avatar.targetPosition.z - avatar.position.z;
+      avatar.moving = Math.hypot(deltaX, deltaZ) > 0.12;
+      if (avatar.moving) avatar.rotationY = Math.atan2(deltaX, deltaZ);
+      avatar.position.lerp(avatar.targetPosition, 0.1);
+      avatar.taskKind = player.task ? player.task.kind : null;
     });
+    this._updatePlayerInstances();
 
     const mixer = this.targets.get('mixer-group');
     this._updateMixer(mixer, snapshot);
@@ -808,6 +827,74 @@ export class Render3D {
       }
     }
     for (const instanced of [bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh]) instanced.instanceMatrix.needsUpdate = true;
+  }
+
+  _updatePlayerInstances() {
+        const { torsoMeshes, headMesh, armMesh, legMesh, eyeMesh, apronMesh, hatMesh } = this.playerMeshes;
+        const now = performance.now() * 0.001;
+        const yAxis = new THREE.Vector3(0, 1, 0);
+        for (let seat = 0; seat < 2; seat += 1) {
+          const view = this.playerViews.get(seat);
+          const scale = view.visible ? 1 : 0;
+          const quaternion = new THREE.Quaternion().setFromAxisAngle(yAxis, view.rotationY);
+          const working = !!view.taskKind;
+          const step = this.reducedMotion ? 0 : view.moving ? Math.sin(now * 11 + seat) : 0;
+          const work = this.reducedMotion ? 0 : working ? Math.sin(now * 13 + seat) : 0;
+          const bob = this.reducedMotion ? 0 : view.moving ? Math.abs(Math.sin(now * 11 + seat)) * 0.07 : Math.sin(now * 2 + seat) * 0.012;
+
+          torsoMeshes[seat].setMatrixAt(0, new THREE.Matrix4().compose(
+            new THREE.Vector3(view.position.x, 1.02 + bob, view.position.z),
+            quaternion,
+            new THREE.Vector3(scale, scale, scale)
+          ));
+          headMesh.setMatrixAt(seat, new THREE.Matrix4().compose(
+            new THREE.Vector3(view.position.x, 1.74 + bob, view.position.z),
+            quaternion,
+            new THREE.Vector3(scale, scale, scale)
+          ));
+          hatMesh.setMatrixAt(seat, new THREE.Matrix4().compose(
+            new THREE.Vector3(view.position.x, 2.18 + bob, view.position.z),
+            quaternion,
+            new THREE.Vector3(scale * 1.12, scale * 0.58, scale * 1.12)
+          ));
+          const apronOffset = new THREE.Vector3(0, 1.02, 0.35).applyAxisAngle(yAxis, view.rotationY);
+          apronMesh.setMatrixAt(seat, new THREE.Matrix4().compose(
+            view.position.clone().add(apronOffset).add(new THREE.Vector3(0, bob, 0)),
+            quaternion,
+            new THREE.Vector3(scale, scale, scale)
+          ));
+
+          for (let side = 0; side < 2; side += 1) {
+            const index = seat * 2 + side;
+            const sign = side === 0 ? -1 : 1;
+            const armOffset = new THREE.Vector3(sign * 0.43, 1.12 + bob, working ? 0.18 : 0).applyAxisAngle(yAxis, view.rotationY);
+            const armAngle = working ? work * 0.55 : step * sign * 0.5;
+            const armQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(armAngle, 0, sign * 0.18));
+            armQuaternion.premultiply(quaternion);
+            armMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+              view.position.clone().add(armOffset),
+              armQuaternion,
+              new THREE.Vector3(scale, scale, scale)
+            ));
+            const legOffset = new THREE.Vector3(sign * 0.2, 0.38, 0).applyAxisAngle(yAxis, view.rotationY);
+            const legQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(-step * sign * 0.48, 0, 0));
+            legQuaternion.premultiply(quaternion);
+            legMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+              view.position.clone().add(legOffset),
+              legQuaternion,
+              new THREE.Vector3(scale, scale, scale)
+            ));
+            const eyeOffset = new THREE.Vector3(sign * 0.14, 1.79 + bob, 0.3).applyAxisAngle(yAxis, view.rotationY);
+            eyeMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+              view.position.clone().add(eyeOffset),
+              quaternion,
+              new THREE.Vector3(scale, scale, scale)
+            ));
+          }
+        }
+        for (const instanced of [...torsoMeshes, headMesh, armMesh, legMesh, eyeMesh, apronMesh, hatMesh]) {
+          instanced.instanceMatrix.needsUpdate = true;
+        }
   }
 
   _updateMixer(mixer, snapshot) {

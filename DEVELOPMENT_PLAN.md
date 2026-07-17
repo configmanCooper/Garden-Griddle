@@ -330,7 +330,7 @@ The game uses direct object tapping rather than free-roam joystick movement. Thi
 - tap an empty plot to choose a seed
 - tap the pail to pick it up
 - tap the kitchen sink while holding the pail to fill all 5 charges
-- long-press a dry crop while equipped with the pail to water it, with a visible progress ring
+- tap a dry crop once while equipped with the pail; the chef remains busy there until watering completes
 - tap the held-item display to drop the pail immediately
 - tap a ripe crop to harvest
 - tap the ready cow to milk

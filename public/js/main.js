@@ -298,11 +298,7 @@ class Game {
   }
 
   shouldHold(target) {
-    if (!target || target.type !== 'plot' || !this.state.snapshot) return false;
-    const plot = this.state.snapshot.plots.find((item) => item.id === target.id);
-    return !!plot && plot.state === 'dry'
-      && this.state.snapshot.pail.holder === this.state.session.playerId
-      && this.state.snapshot.pail.water > 0;
+    return false;
   }
 
   showHoldProgress(show) {
@@ -321,11 +317,9 @@ class Game {
         return this.ui.chooseCrop(plot.id);
       }
       if (plot.state === 'dry') {
-        if (!held) {
-          const hasPail = this.state.snapshot.pail.holder === this.state.session.playerId;
-          if (hasPail && this.state.snapshot.pail.water <= 0) return this.ui.toast('The pail is empty. Fill it at the kitchen sink.', true);
-          return this.ui.toast(hasPail ? 'Hold down on the crop to water it.' : 'Pick up the pail, then hold this crop to water.', true);
-        }
+        const hasPail = this.state.snapshot.pail.holder === this.state.session.playerId;
+        if (!hasPail) return this.ui.toast('Pick up the pail first.', true);
+        if (this.state.snapshot.pail.water <= 0) return this.ui.toast('The pail is empty. Fill it at the kitchen sink.', true);
         return this.sendAction(C.ACTIONS.WATER, { plotId: plot.id }, Audio.sfx.water);
       }
       if (plot.state === 'ripe') return this.sendAction(C.ACTIONS.HARVEST, { plotId: plot.id }, Audio.sfx.harvest);

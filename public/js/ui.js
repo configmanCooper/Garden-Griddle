@@ -269,7 +269,7 @@ export class UI {
         {
           done: tutorial.watered >= 6,
           title: 'Water all six crops (' + Math.min(6, tutorial.watered) + '/6)',
-          text: 'Hold down on each dry crop. After five plants, tap the sink again to refill for the sixth.'
+          text: 'Tap each dry crop once. Your chef stays busy until it is watered. After five plants, refill at the sink.'
         },
         {
           done: harvestedDone,
