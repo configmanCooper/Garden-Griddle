@@ -347,7 +347,7 @@ export class UI {
         {
           done: tutorial.batterMixed,
           title: 'Mix a batter batch',
-          text: 'When the fridge has 3 Flour, 3 Sugar, and 3 Milk, tap the mixing bowl. One batch makes 10 crepes.'
+          text: 'When the fridge has 3 Flour, 3 Sugar, and 3 Milk, tap the mixing bowl. One batch makes 5 crepes.'
         },
         {
           done: tutorial.crepeStarted,

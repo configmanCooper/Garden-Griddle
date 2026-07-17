@@ -9,7 +9,7 @@ The core loop is deliberately readable and tactile:
 1. Plant and water ingredients in the garden.
 2. Harvest ripe ingredients directly into the shared fridge.
 3. Milk the cow whenever its single milk unit is ready.
-4. Mix flour, sugar, and milk into a batter batch worth 10 crepes.
+4. Mix flour, sugar, and milk into a batter batch worth 5 crepes.
 5. Assign customer orders to one of three stovetops.
 6. Serve finished crepes before customers lose patience.
 7. Earn 1–3 stars during each three-minute day.

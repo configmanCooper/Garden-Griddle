@@ -131,7 +131,7 @@ function testBatterAndStoves() {
   equal(state.fridge.sugar, 17, 'Mixer consumes sugar.');
   equal(state.fridge.milk, 17, 'Mixer consumes milk.');
   complete(state, state.effects.mixSeconds + 0.01);
-  equal(state.batter, 10, 'One batch makes ten crepes.');
+  equal(state.batter, 5, 'One batch makes five crepes.');
   equal(state.tutorial.batterMixed, true, 'Tutorial records completed batter.');
   complete(state, 0.1);
   const order = state.orders.find((item) => item.status === 'waiting');
@@ -234,7 +234,7 @@ function testUpgrades() {
   equal(campaign.stars, 18, 'First tier costs two stars.');
   equal(campaign.upgrades.biggerBowl, 1, 'Upgrade tier increments.');
   const state = fresh({ upgrades: campaign.upgrades });
-  equal(state.effects.batterYield, 12, 'Bigger Bowl affects batter output.');
+  equal(state.effects.batterYield, 7, 'Bigger Bowl adds two portions to the five-crepe batch.');
 }
 
 function testDeterminism() {
