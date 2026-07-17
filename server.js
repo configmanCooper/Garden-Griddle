@@ -61,6 +61,7 @@ function createGameServer(options) {
     socket.on(C.EVENTS.CREATE_ROOM, (payload, ack) => rooms.createRoom(socket, payload || {}, ack));
     socket.on(C.EVENTS.JOIN_ROOM, (payload, ack) => rooms.joinRoom(socket, payload || {}, ack));
     socket.on(C.EVENTS.START_DAY, (payload, ack) => rooms.startDay(socket, payload || {}, ack));
+    socket.on(C.EVENTS.SET_RESTAURANT_NAME, (payload, ack) => rooms.setRestaurantName(socket, payload || {}, ack));
     socket.on(C.EVENTS.SUBMIT_ACTION, (payload, ack) => rooms.submitAction(socket, payload || {}, ack));
     socket.on(C.EVENTS.BUY_UPGRADE, (payload, ack) => rooms.buyUpgrade(socket, payload || {}, ack));
     socket.on(C.EVENTS.PAUSE_REQUEST, (_payload, ack) => rooms.requestPause(socket, ack));

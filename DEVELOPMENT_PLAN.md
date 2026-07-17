@@ -13,7 +13,7 @@ The core loop is deliberately readable and tactile:
 5. Assign customer orders to one of three stovetops.
 6. Serve finished crepes before customers lose patience.
 7. Earn 1–3 stars during each three-minute day.
-8. Spend earned stars on upgrades and continue through 50 levels.
+8. Spend earned stars on upgrades and continue through 100 days.
 
 The tone is warm, cheerful, cooperative, and low-stress at early levels, with increasingly lively coordination demands later.
 
@@ -36,7 +36,7 @@ The reviews also identified two issues that receive first-class implementation a
 ## 3. Scope and assumptions
 
 - Online cooperative play supports exactly two active player seats per room.
-- A host may start a solo-practice day, but the intended experience is two players. Solo days use an authored 0.5 arrival-rate multiplier and are validated separately so all 50 levels remain passable without pretending one player has two-player throughput.
+- A host may start a solo-practice day, but the intended experience is two players. Solo days use an authored 0.5 arrival-rate multiplier and are validated separately so all 100 days remain passable without pretending one player has two-player throughput.
 - Players are symmetric and can perform every action.
 - The server is authoritative for all game rules, timers, inventory, scoring, and progression changes.
 - The web client and Android app contain presentation and input only; neither can award resources or complete actions locally.
@@ -185,7 +185,7 @@ Levels are generated from authored formulas plus milestone overrides, not 50 dup
 Primary difficulty dimensions:
 
 - order intervals are recalculated against the shorter post-prep service window so actual arrivals remain about 25% below the original curve
-- patience: approximately 40 seconds at level 1 to 18 seconds at level 50
+- patience: 20% above the original curve, from approximately 48 seconds early to 21.6 seconds at maximum difficulty
 - prep duration: 15 seconds to 8 seconds
 - active recipe variety: 3 to 10
 - queue cap: 3 to 8
@@ -221,7 +221,7 @@ The campaign contains 12 upgrades with five tiers each. A perfect campaign canno
 | Cozy Cafe | Customers have 5% more patience |
 | Fast Service | Serving and clearing complete 10% faster |
 
-Tier costs are 1, 2, 3, 4, and 5 stars, for 15 stars per fully upgraded item and 180 stars for all upgrades. A perfect 50-level campaign contains 150 total stars, so players must specialize.
+Tier costs are 2, 4, 6, 8, and 10 stars, for 30 stars per fully upgraded item and 360 stars for all upgrades. A perfect 100-day campaign contains 300 total stars, so players must specialize.
 
 ## 7. Multiplayer and server architecture
 
@@ -486,14 +486,14 @@ This initial progression is intentionally local and untrusted: a player can edit
 
 ### 12.3 Balance automation
 
-Two cooperative bots run all 50 levels:
+Two cooperative bots run all 100 days:
 
 - skilled/max-upgrade bots must be able to earn 3 stars on every level
 - competent mid-upgrade bots should pass every level
 - idle or intentionally wasteful bots must fail
 - simulation remains deterministic across repeated sweeps
 - bots are limited to authored human reaction latency and actions-per-minute; a level fails validation if success requires more than 80% of the two-player human input ceiling
-- a Phase-1 numeric production-ceiling check validates the single-pail garden bottleneck before the 50-level curve is accepted
+- a Phase-1 numeric production-ceiling check validates the single-pail garden bottleneck before the 100-day curve is accepted
 
 ### 12.4 Network integration
 
@@ -572,12 +572,12 @@ Commit gate: two Chromium clients complete plant → water → harvest → batte
 
 Deliverables:
 
-- all 50 levels
+- all 100 days
 - milestone rushes
 - improved-star rewards
 - 12-upgrade shop
 - versioned local persistence and authoritative room sync
-- full 50-level bot balance sweep
+- full 100-day bot balance sweep
 
 Commit gate: progression tests, solo/two-player sweeps, human-APM limits, and all balance feasibility checks pass.
 

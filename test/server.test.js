@@ -98,6 +98,9 @@ async function run() {
     assert.strictEqual(joined.ok, true);
     const guestSession = await guestSessionPromise;
     assert.notStrictEqual(guestSession.playerId, hostSession.playerId);
+    const renamed = await emitAck(guest, C.EVENTS.SET_RESTAURANT_NAME, { name: 'Sunny Side Crepes' });
+    assert.strictEqual(renamed.ok, true, 'Either player can rename the restaurant between days.');
+    assert.strictEqual(gameServer.rooms.getRoom(hostSession.code).restaurantName, 'Sunny Side Crepes');
 
     const hostReconnect = client(url);
     sockets.push(hostReconnect);
@@ -129,9 +132,20 @@ async function run() {
     });
     assert.strictEqual(forgedJoin.ok, false);
 
+    const lockedByPrevious = await emitAck(host, C.EVENTS.START_DAY, { level: 2 });
+    assert.strictEqual(lockedByPrevious.ok, false);
+    assert.match(lockedByPrevious.reason, /one star on Day 1/);
+    const roomBeforeStart = gameServer.rooms.getRoom(hostSession.code);
+    roomBeforeStart.campaign.unlockedLevel = 100;
+    roomBeforeStart.campaign.bestStars[99] = 1;
+    const forgedDay100 = await emitAck(host, C.EVENTS.START_DAY, { level: 100 });
+    assert.strictEqual(forgedDay100.ok, false, 'A forged unlock cannot skip the contiguous day sequence.');
+    assert.match(forgedDay100.reason, /one star on Day 1/);
     const startedPromise = once(guest, C.EVENTS.DAY_STARTED);
     const started = await emitAck(host, C.EVENTS.START_DAY, { level: 1 });
     assert.strictEqual(started.ok, true);
+    const renameDuringDay = await emitAck(guest, C.EVENTS.SET_RESTAURANT_NAME, { name: 'Not During Service' });
+    assert.strictEqual(renameDuringDay.ok, false);
     assert.strictEqual((await startedPromise).level, 1);
 
     const planted = await emitAck(host, C.EVENTS.SUBMIT_ACTION, {

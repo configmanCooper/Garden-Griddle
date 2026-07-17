@@ -114,6 +114,11 @@ class Game {
     });
     this.net.on(C.EVENTS.ROOM_UPDATE, (room) => {
       this.state.room = room;
+      if (room.restaurantName) {
+        this.save.restaurantName = room.restaurantName;
+        Save.write(this.save);
+        this.render.setRestaurantName(room.restaurantName);
+      }
       this.syncCampaign(room.campaign);
       this.ui.updateRoom(room, this.state.session);
       if (room.status === 'lobby' || room.status === 'results') {
@@ -225,7 +230,7 @@ class Game {
 
   async createRoom() {
     Audio.unlock();
-    const result = await this.net.create(this.playerName(), this.save.campaign);
+    const result = await this.net.create(this.playerName(), this.save.campaign, this.save.restaurantName);
     if (!result.ok) this.ui.toast(result.reason, true);
   }
 
@@ -241,6 +246,11 @@ class Game {
 
   async startDay(level) {
     const result = await this.net.start(level);
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async setRestaurantName(name) {
+    const result = await this.net.setRestaurantName(String(name || '').trim());
     if (!result.ok) this.ui.toast(result.reason, true);
   }
 

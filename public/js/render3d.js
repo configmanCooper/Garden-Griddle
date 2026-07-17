@@ -446,13 +446,43 @@ export class Render3D {
   }
 
   _buildKitchen() {
-    const floor = mesh(new THREE.BoxGeometry(13.5, 0.28, 12), 0xf0d6a6);
-    floor.position.set(6, 0.1, 0);
+    const floorTexture = this._makeFloorTexture();
+    const floor = new THREE.Mesh(
+      new THREE.BoxGeometry(16, 0.28, 13.5),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: floorTexture })
+    );
+    floor.position.set(6.5, 0.1, 0);
     this.scene.add(floor);
 
-    const backWall = mesh(new THREE.BoxGeometry(13.5, 2.9, 0.3), 0xfff0d4);
-    backWall.position.set(6, 1.45, -6);
+    const backWall = mesh(new THREE.BoxGeometry(16, 3.25, 0.3), 0xf5d8a9);
+    backWall.position.set(6.5, 1.62, -6.6);
     this.scene.add(backWall);
+    const wallTrim = mesh(new THREE.BoxGeometry(16, 0.42, 0.12), 0x9e5c38);
+    wallTrim.position.set(6.5, 0.55, -6.4);
+    this.scene.add(wallTrim);
+    const mural = new THREE.Mesh(
+      new THREE.PlaneGeometry(10.5, 2.05),
+      new THREE.MeshBasicMaterial({ map: this._makeCrepeMuralTexture(), transparent: true })
+    );
+    mural.position.set(6.5, 1.92, -6.42);
+    this.scene.add(mural);
+
+    const frontWalls = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material(0x9e633f), 2);
+    frontWalls.setMatrixAt(0, new THREE.Matrix4().compose(
+      new THREE.Vector3(1.5, 0.36, 6.62),
+      new THREE.Quaternion(),
+      new THREE.Vector3(6, 0.72, 0.26)
+    ));
+    frontWalls.setMatrixAt(1, new THREE.Matrix4().compose(
+      new THREE.Vector3(11.5, 0.36, 6.62),
+      new THREE.Quaternion(),
+      new THREE.Vector3(6, 0.72, 0.26)
+    ));
+    this.scene.add(frontWalls);
+    const entryMat = mesh(new THREE.PlaneGeometry(4, 2.3), 0xb98858);
+    entryMat.rotation.x = -Math.PI / 2;
+    entryMat.position.set(6.5, 0.255, 5.65);
+    this.scene.add(entryMat);
 
     const fridgeGroup = new THREE.Group();
     const fridgeBody = mesh(new THREE.BoxGeometry(2.2, 3.9, 1.9), 0xb9ced5);
@@ -576,7 +606,16 @@ export class Render3D {
       group.add(crepe);
       group.position.set(7.2, 0, -3.6 + index * 3.6);
       this._target(top, { type: 'stove', id: 'stove-' + (index + 1) });
-      this.stoveViews.set('stove-' + (index + 1), { group, ring, crepe, toppingTexture, hasToppings: false, flipStartedAt: 0 });
+      this.stoveViews.set('stove-' + (index + 1), {
+        group,
+        ring,
+        crepe,
+        toppingTexture,
+        hasToppings: false,
+        flipStartedAt: 0,
+        lastFlippedAt: 0,
+        flipInitialized: false
+      });
       this.scene.add(group);
     }
 
@@ -594,6 +633,120 @@ export class Render3D {
       this.customerStoolPositions.push(position);
     }
     this.scene.add(stools);
+    this._buildRestaurantBanner();
+  }
+
+  _makeFloorTexture() {
+    const texture = makeCanvasTexture(512, 512, (context, width, height) => {
+      context.fillStyle = '#d7ad73';
+      context.fillRect(0, 0, width, height);
+      const size = 64;
+      for (let y = 0; y < height; y += size) {
+        for (let x = 0; x < width; x += size) {
+          context.fillStyle = ((x / size + y / size) % 2) ? '#e6c58f' : '#c99661';
+          context.fillRect(x + 2, y + 2, size - 4, size - 4);
+          context.strokeStyle = 'rgba(105,65,38,.18)';
+          context.strokeRect(x + 2, y + 2, size - 4, size - 4);
+        }
+      }
+    });
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 3.4);
+    return texture;
+  }
+
+  _makeCrepeMuralTexture() {
+    return makeCanvasTexture(1024, 220, (context, width, height) => {
+      context.clearRect(0, 0, width, height);
+      const colors = ['#df4055', '#ffdc28', '#642c88', '#efc94c'];
+      for (let index = 0; index < 4; index += 1) {
+        const x = 55 + index * 242;
+        context.fillStyle = '#75462f';
+        context.fillRect(x, 10, 205, 200);
+        context.fillStyle = '#fff3d4';
+        context.fillRect(x + 10, 20, 185, 180);
+        context.fillStyle = '#d8944d';
+        context.beginPath();
+        context.arc(x + 102, 110, 68, 0, Math.PI * 2);
+        context.fill();
+        context.strokeStyle = '#8f552f';
+        context.lineWidth = 8;
+        context.stroke();
+        context.fillStyle = colors[index];
+        for (let topping = 0; topping < 5; topping += 1) {
+          const angle = topping / 5 * Math.PI * 2;
+          context.beginPath();
+          context.arc(x + 102 + Math.cos(angle) * 35, 110 + Math.sin(angle) * 35, 13, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    });
+  }
+
+  _buildRestaurantBanner() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 240;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const banner = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 1.9),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
+    );
+    banner.position.set(11.7, 3.35, 6.15);
+    banner.rotation.y = Math.PI / 4;
+    this.restaurantBanner = { mesh: banner, canvas, context: canvas.getContext('2d'), texture, name: '' };
+    this.scene.add(banner);
+    this.setRestaurantName('Garden & Griddle');
+  }
+
+  setRestaurantName(name) {
+    if (!this.restaurantBanner) return;
+    const cleanName = String(name || 'Garden & Griddle').trim().slice(0, 32) || 'Garden & Griddle';
+    if (this.restaurantBanner.name === cleanName) return;
+    this.restaurantBanner.name = cleanName;
+    const { context, canvas, texture } = this.restaurantBanner;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#6f3f25';
+    context.strokeStyle = '#efb84e';
+    context.lineWidth = 18;
+    context.beginPath();
+    context.roundRect(14, 14, canvas.width - 28, canvas.height - 28, 42);
+    context.fill();
+    context.stroke();
+    const drawCrepe = (x) => {
+      context.fillStyle = '#e3a659';
+      context.beginPath();
+      context.arc(x, 120, 74, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = '#4b291d';
+      context.lineWidth = 8;
+      context.stroke();
+      context.fillStyle = '#df4055';
+      context.beginPath();
+      context.arc(x - 24, 102, 16, 0, Math.PI * 2);
+      context.arc(x + 28, 133, 15, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = '#fff0a8';
+      context.beginPath();
+      context.arc(x + 15, 88, 11, 0, Math.PI * 2);
+      context.fill();
+    };
+    drawCrepe(105);
+    drawCrepe(919);
+    let fontSize = 72;
+    do {
+      context.font = `900 ${fontSize}px system-ui, sans-serif`;
+      fontSize -= 2;
+    } while (context.measureText(cleanName).width > 660 && fontSize > 30);
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.lineWidth = 10;
+    context.strokeStyle = '#3a2118';
+    context.fillStyle = '#fff1c8';
+    context.strokeText(cleanName, 512, 120);
+    context.fillText(cleanName, 512, 120);
+    texture.needsUpdate = true;
   }
 
   _buildCustomers() {
@@ -904,6 +1057,13 @@ export class Render3D {
 
     for (const stove of snapshot.stoves) {
       const view = this.stoveViews.get(stove.id);
+      if (!view.flipInitialized) {
+        view.flipInitialized = true;
+        view.lastFlippedAt = stove.flippedAt;
+      } else if (stove.flippedAt > 0 && stove.flippedAt !== view.lastFlippedAt) {
+        view.lastFlippedAt = stove.flippedAt;
+        view.flipStartedAt = performance.now();
+      }
       const colors = {
         empty: 0x555555,
         cooking: 0xe18435,
@@ -1229,14 +1389,18 @@ export class Render3D {
     const now = performance.now();
     for (const view of this.stoveViews.values()) {
       if (!view.flipStartedAt) continue;
-      const progress = (now - view.flipStartedAt) / 650;
+      const progress = (now - view.flipStartedAt) / 950;
       if (progress >= 1 || this.reducedMotion) {
         view.crepe.rotation.x = 0;
+        view.crepe.rotation.z = 0;
         view.crepe.position.y = 1.57;
+        view.crepe.position.x = 0;
         view.flipStartedAt = 0;
       } else {
-        view.crepe.rotation.x = progress * Math.PI * 2;
-        view.crepe.position.y = 1.57 + Math.sin(progress * Math.PI) * 0.75;
+        view.crepe.rotation.x = progress * Math.PI * 4;
+        view.crepe.rotation.z = Math.sin(progress * Math.PI) * 0.28;
+        view.crepe.position.y = 1.57 + Math.sin(progress * Math.PI) * 1.05;
+        view.crepe.position.x = Math.sin(progress * Math.PI * 2) * 0.16;
       }
     }
   }
@@ -1286,9 +1450,6 @@ export class Render3D {
         position.add(new THREE.Vector3(0, 0.8, 0));
       } else if (event.type === 'served' || event.type === 'customerPaid') {
         position = new THREE.Vector3(12.3, 1.4, 0);
-      }
-      if (event.type === 'crepeFlipped' && event.stoveId && this.stoveViews.has(event.stoveId)) {
-        this.stoveViews.get(event.stoveId).flipStartedAt = performance.now();
       }
       if (!position) continue;
       if (event.type === 'watered' || event.type === 'pailFilled') { color = 0x62b9ef; mode = 'water'; }

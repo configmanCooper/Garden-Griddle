@@ -59,8 +59,8 @@ export class Net {
     });
   }
 
-  create(name, campaign) {
-    return this.emitAck(C.EVENTS.CREATE_ROOM, { name, campaign });
+  create(name, campaign, restaurantName) {
+    return this.emitAck(C.EVENTS.CREATE_ROOM, { name, campaign, restaurantName });
   }
 
   join(code, name, inviteToken) {
@@ -76,6 +76,8 @@ export class Net {
     this.seq = 0;
     return this.emitAck(C.EVENTS.START_DAY, { level });
   }
+
+  setRestaurantName(name) { return this.emitAck(C.EVENTS.SET_RESTAURANT_NAME, { name }); }
 
   action(action, payload) {
     this.seq += 1;

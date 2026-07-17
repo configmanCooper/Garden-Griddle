@@ -4,6 +4,7 @@ function defaults() {
   return {
     version: 1,
     playerName: '',
+    restaurantName: 'Garden & Griddle',
     campaign: window.GG.Schema.normalizeCampaign({}),
     settings: { sfx: true, vibration: true, reducedMotion: false, highContrast: false }
   };
@@ -17,6 +18,7 @@ export function load() {
     return {
       version: 1,
       playerName: String(raw.playerName || '').slice(0, 20),
+      restaurantName: String(raw.restaurantName || 'Garden & Griddle').slice(0, 32),
       campaign: window.GG.Schema.normalizeCampaign(raw.campaign),
       settings: Object.assign(base.settings, raw.settings || {})
     };

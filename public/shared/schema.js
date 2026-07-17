@@ -35,10 +35,15 @@
       const value = raw.bestStars && (raw.bestStars[level] !== undefined ? raw.bestStars[level] : raw.bestStars[String(level)]);
       bestStars[level] = clampInt(value, 0, 3);
     }
+    let derivedUnlockedLevel = 1;
+    for (let level = 1; level < C.MAX_LEVEL; level += 1) {
+      if ((bestStars[level] || 0) < 1) break;
+      derivedUnlockedLevel = level + 1;
+    }
     return {
       version: 1,
       revision: clampInt(raw.revision, 0, 1000000000),
-      unlockedLevel: clampInt(raw.unlockedLevel || 1, 1, C.MAX_LEVEL),
+      unlockedLevel: derivedUnlockedLevel,
       stars: clampInt(raw.stars, 0, 9999),
       bestStars,
       upgrades: normalizeUpgrades(raw.upgrades)

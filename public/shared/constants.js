@@ -9,8 +9,8 @@
   'use strict';
 
   const PROTOCOL = 1;
-  const CLIENT_BUILD = '1.2.6';
-  const MAX_LEVEL = 50;
+  const CLIENT_BUILD = '1.3.0';
+  const MAX_LEVEL = 100;
   const MAX_PLAYERS = 2;
 
   const CROPS = {
@@ -72,6 +72,7 @@
     CREATE_ROOM: 'create_room',
     JOIN_ROOM: 'join_room',
     START_DAY: 'start_day',
+    SET_RESTAURANT_NAME: 'set_restaurant_name',
     SUBMIT_ACTION: 'submit_action',
     BUY_UPGRADE: 'buy_upgrade',
     PAUSE_REQUEST: 'pause_request',

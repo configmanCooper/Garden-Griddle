@@ -34,8 +34,24 @@ function sanitizeName(value) {
     .slice(0, 20) || 'Player';
 }
 
+function sanitizeRestaurantName(value) {
+  return String(value || 'Garden & Griddle')
+    .replace(/[\u0000-\u001f\u007f<>]/g, '')
+    .trim()
+    .slice(0, 32) || 'Garden & Griddle';
+}
+
 function safeAck(ack, payload) {
   if (typeof ack === 'function') ack(payload);
+}
+
+function sequentialUnlockedLevel(campaign) {
+  let unlocked = 1;
+  for (let level = 1; level < C.MAX_LEVEL; level += 1) {
+    if ((campaign.bestStars[level] || 0) < 1) break;
+    unlocked = level + 1;
+  }
+  return unlocked;
 }
 
 class RoomManager {
@@ -75,6 +91,7 @@ class RoomManager {
       inviteExpiresAt: now + INVITE_LIFETIME_MS,
       hostId: pid,
       status: 'lobby',
+      restaurantName: sanitizeRestaurantName(payload && payload.restaurantName),
       campaign: S.normalizeCampaign(payload && payload.campaign),
       selectedLevel: 1,
       players: new Map(),
@@ -258,6 +275,17 @@ class RoomManager {
     }
   }
 
+  setRestaurantName(socket, payload, ack) {
+    const context = this.context(socket);
+    if (!context) return safeAck(ack, { ok: false, reason: 'Not in a room.' });
+    if (!['lobby', 'results'].includes(context.room.status)) {
+      return safeAck(ack, { ok: false, reason: 'Change the restaurant name between days.' });
+    }
+    context.room.restaurantName = sanitizeRestaurantName(payload && payload.name);
+    this.broadcastRoom(context.room);
+    safeAck(ack, { ok: true, name: context.room.restaurantName });
+  }
+
   startDay(socket, payload, ack) {
     const context = this.context(socket);
     if (!context) return safeAck(ack, { ok: false, reason: 'Not in a room.' });
@@ -266,7 +294,11 @@ class RoomManager {
     if (room.hostId !== player.id) return safeAck(ack, { ok: false, reason: 'Only the host can start.' });
     if (!['lobby', 'results'].includes(room.status)) return safeAck(ack, { ok: false, reason: 'A day is already active.' });
     const level = Math.max(1, Math.min(C.MAX_LEVEL, Math.floor(Number(payload && payload.level) || room.selectedLevel)));
-    if (level > room.campaign.unlockedLevel) return safeAck(ack, { ok: false, reason: 'That level is locked.' });
+    const unlockedLevel = sequentialUnlockedLevel(room.campaign);
+    if (level > unlockedLevel) {
+      return safeAck(ack, { ok: false, reason: 'Earn at least one star on Day ' + unlockedLevel + ' first.' });
+    }
+
     const active = [...room.players.values()].filter((item) => item.connected);
     if (!active.length) return safeAck(ack, { ok: false, reason: 'No connected players.' });
     room.selectedLevel = level;
@@ -483,6 +515,7 @@ class RoomManager {
       status: room.status,
       hostId: room.hostId,
       selectedLevel: room.selectedLevel,
+      restaurantName: room.restaurantName,
       campaign: room.campaign,
       players: [...room.players.values()]
         .sort((a, b) => a.seat - b.seat)
@@ -563,4 +596,4 @@ class RoomManager {
   }
 }
 
-module.exports = { RoomManager, sanitizeName };
+module.exports = { RoomManager, sanitizeName, sanitizeRestaurantName };

@@ -231,7 +231,7 @@ function testUpgrades() {
   const campaign = S.normalizeCampaign({ stars: 20 });
   const buy = B.purchaseUpgrade(campaign, 'biggerBowl');
   truthy(buy.ok, 'Upgrade purchase succeeds.');
-  equal(campaign.stars, 19, 'First tier costs one star.');
+  equal(campaign.stars, 18, 'First tier costs two stars.');
   equal(campaign.upgrades.biggerBowl, 1, 'Upgrade tier increments.');
   const state = fresh({ upgrades: campaign.upgrades });
   equal(state.effects.batterYield, 12, 'Bigger Bowl affects batter output.');

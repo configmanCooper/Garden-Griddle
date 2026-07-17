@@ -16,7 +16,7 @@ In the kitchen, watch flour, sugar, and milk blend into ten-crepe batter batches
 Both players can do everything. Switch naturally between the garden and kitchen, send quick teamwork pings, earn up to three stars per day, and spend stars on 12 permanent upgrades.
 
 - Online two-player cooperative play
-- 50 three-minute levels
+- 100 three-minute days
 - Six crops and ten crepe recipes
 - Three simultaneous stovetops
 - Twelve multi-tier upgrades

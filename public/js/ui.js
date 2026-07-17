@@ -15,6 +15,8 @@ export class UI {
     this.pendingPlotId = null;
     this.orderNodes = new Map();
     this.tutorialSignature = '';
+    this.selectedLevel = 1;
+    this.restaurantNameTimer = null;
     this.bind();
     this.buildCropOptions();
   }
@@ -24,8 +26,23 @@ export class UI {
     byId('join-room').onclick = () => this.game.joinRoom();
     byId('room-code-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') this.game.joinRoom(); });
     byId('save-server').onclick = () => this.game.saveServer();
-    byId('start-day').onclick = () => this.game.startDay(Number(byId('level-select').value));
-    byId('level-select').oninput = () => this.updateSelectedLevel();
+    byId('start-day').onclick = () => this.game.startDay(this.selectedLevel);
+    byId('restaurant-name').oninput = (event) => {
+      clearTimeout(this.restaurantNameTimer);
+      this.restaurantNameTimer = setTimeout(() => this.game.setRestaurantName(event.target.value), 450);
+    };
+    byId('restaurant-name').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        clearTimeout(this.restaurantNameTimer);
+        this.game.setRestaurantName(event.target.value);
+        event.target.blur();
+      }
+    });
+    byId('restaurant-name').addEventListener('blur', (event) => {
+      clearTimeout(this.restaurantNameTimer);
+      const authoritative = this.game.state.room && this.game.state.room.restaurantName;
+      if (authoritative) event.target.value = authoritative;
+    });
     byId('share-room').onclick = () => this.game.shareRoom();
     byId('open-shop').onclick = () => this.showShop();
     byId('open-settings-title').onclick = () => this.showSettings();
@@ -90,6 +107,8 @@ export class UI {
     if (!room || !session) return;
     byId('room-code').textContent = room.code;
     byId('campaign-stars').textContent = room.campaign.stars;
+    const restaurantInput = byId('restaurant-name');
+    if (document.activeElement !== restaurantInput) restaurantInput.value = room.restaurantName || 'Garden & Griddle';
     const list = byId('player-list');
     list.replaceChildren();
     for (let seat = 0; seat < 2; seat += 1) {
@@ -109,17 +128,17 @@ export class UI {
       list.appendChild(card);
     }
     const isHost = room.hostId === session.playerId;
-    const slider = byId('level-select');
-    slider.max = room.campaign.unlockedLevel;
-    slider.value = Math.min(Number(slider.value || room.selectedLevel), room.campaign.unlockedLevel);
+    this.selectedLevel = Math.min(this.selectedLevel || room.selectedLevel || 1, room.campaign.unlockedLevel);
     byId('start-day').disabled = !isHost || !['lobby', 'results'].includes(room.status);
+    restaurantInput.disabled = !['lobby', 'results'].includes(room.status);
     byId('room-hint').textContent = isHost ? 'Choose any unlocked day and start when ready.' : 'The host chooses when the restaurant opens.';
+    this.renderDayPicker(room.campaign);
     this.updateSelectedLevel();
     this.renderShop(room.campaign);
   }
 
   updateSelectedLevel() {
-    const level = Number(byId('level-select').value || 1);
+    const level = this.selectedLevel || 1;
     byId('selected-level-label').textContent = level;
     const campaign = this.game.state.room && this.game.state.room.campaign;
     byId('level-stars').textContent = campaign ? stars(campaign.bestStars[level] || 0) : '☆☆☆';
@@ -127,6 +146,34 @@ export class UI {
     const details = B.compileLevel(level, players);
     byId('level-details').textContent = details.name + ' - ' + details.recipeCount + ' recipes - orders about every '
       + details.orderInterval.toFixed(1) + 's - ' + Math.round(details.patience) + 's patience';
+  }
+
+  renderDayPicker(campaign) {
+    const picker = byId('day-picker');
+    picker.replaceChildren();
+    for (let level = 1; level <= C.MAX_LEVEL; level += 1) {
+      const unlocked = level === 1 || (campaign.bestStars[level - 1] || 0) >= 1;
+      const button = document.createElement('button');
+      button.className = 'day-choice' + (unlocked ? '' : ' locked') + (level === this.selectedLevel ? ' selected' : '');
+      button.disabled = !unlocked;
+      button.setAttribute('role', 'option');
+      button.setAttribute('aria-selected', level === this.selectedLevel ? 'true' : 'false');
+      const number = document.createElement('strong');
+      number.textContent = level;
+      const rating = document.createElement('span');
+      rating.textContent = unlocked ? stars(campaign.bestStars[level] || 0) : 'LOCKED';
+      button.append(number, rating);
+      button.onclick = () => {
+        this.selectedLevel = level;
+        this.renderDayPicker(campaign);
+        this.updateSelectedLevel();
+      };
+      picker.appendChild(button);
+    }
+    requestAnimationFrame(() => {
+      const selected = picker.querySelector('.day-choice.selected');
+      if (selected) selected.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
   }
 
   updateSnapshot(snapshot, state) {

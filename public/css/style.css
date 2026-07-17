@@ -63,8 +63,17 @@ button { cursor: pointer; }
 .player-dot { width: 36px; height: 36px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 .player-seat small { display: block; color: var(--ink-soft); }
 .campaign-card { background: rgba(255,255,255,.45); border-radius: 18px; padding: 16px; }
+.restaurant-name-field { display: grid; grid-template-columns: auto minmax(180px, 1fr); align-items: center; gap: 6px 12px; margin-bottom: 14px; color: var(--ink-soft); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .8px; }
+.restaurant-name-field input { min-height: var(--hit); border: 2px solid #d5bd8c; border-radius: 13px; background: white; color: var(--ink); padding: 0 13px; font-size: 18px; font-weight: 900; text-transform: none; letter-spacing: 0; }
+.restaurant-name-field small { grid-column: 2; color: var(--ink-soft); font-size: 10px; font-weight: 600; text-transform: none; letter-spacing: 0; }
 .campaign-top strong { display: block; font-size: 24px; }
-#level-select { width: 100%; margin: 14px 0; accent-color: var(--caramel); }
+.day-picker { display: flex; gap: 8px; width: 100%; margin: 14px 0; padding: 5px 3px 9px; overflow-x: auto; touch-action: pan-x; overscroll-behavior-x: contain; scrollbar-color: var(--caramel) rgba(120,80,45,.15); }
+.day-choice { flex: 0 0 68px; min-height: 62px; border: 2px solid #d6bd88; border-radius: 13px; background: #fff9e9; color: var(--ink); }
+.day-choice strong { display: block; font-size: 20px; }
+.day-choice span { display: block; margin-top: 3px; color: var(--gold); font-size: 10px; white-space: nowrap; }
+.day-choice.selected { border-color: var(--caramel); background: #ffe3ac; box-shadow: 0 0 0 2px rgba(199,123,59,.25); }
+.day-choice.locked { background: #b9b7b1; border-color: #98958f; color: #66635f; opacity: .72; }
+.day-choice.locked span { color: #66635f; font-size: 8px; }
 .level-stars { min-height: 24px; color: var(--gold); font-size: 20px; }
 .level-details { min-height: 40px; color: var(--ink-soft); text-align: center; font-size: 12px; line-height: 1.45; }
 #start-day { width: 100%; margin-top: 8px; }

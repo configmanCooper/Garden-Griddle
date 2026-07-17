@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#493224">
   <title>Garden &amp; Griddle</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/style.css?v=126">
+  <link rel="stylesheet" href="css/style.css?v=130">
 </head>
 <body>
   <canvas id="game-canvas" aria-label="Garden and restaurant game"></canvas>
@@ -57,11 +57,15 @@
         </header>
         <div id="player-list" class="player-list"></div>
         <div class="campaign-card">
+          <label class="restaurant-name-field">Restaurant name
+            <input id="restaurant-name" maxlength="32" autocomplete="off" placeholder="Garden &amp; Griddle">
+            <small>Either player can change this between days.</small>
+          </label>
           <div class="campaign-top">
             <div><span class="eyebrow">Campaign stars</span><strong id="campaign-stars">0</strong></div>
             <div><span class="eyebrow">Selected day</span><strong id="selected-level-label">1</strong></div>
           </div>
-          <input id="level-select" type="range" min="1" max="1" value="1" aria-label="Select day">
+          <div id="day-picker" class="day-picker" role="listbox" aria-label="Select campaign day"></div>
           <div id="level-stars" class="level-stars"></div>
           <div id="level-details" class="level-details"></div>
           <button id="start-day" class="btn primary">Open for the Day</button>
@@ -188,11 +192,11 @@
   <div id="rotate-gate"><div><strong>Turn your phone sideways</strong><span>Garden &amp; Griddle is designed for landscape play.</span></div></div>
   <div id="unsupported" class="unsupported hidden"><h1>WebGL2 is needed</h1><p>Please update Android System WebView or use a newer browser.</p></div>
 
-  <script src="shared/constants.js?v=126"></script>
-  <script src="shared/balance.js?v=126"></script>
-  <script src="shared/rng.js?v=126"></script>
-  <script src="shared/schema.js?v=126"></script>
-  <script src="js/vendor/socket.io.min.js?v=126"></script>
-  <script type="module" src="js/main.js?v=126"></script>
+  <script src="shared/constants.js?v=130"></script>
+  <script src="shared/balance.js?v=130"></script>
+  <script src="shared/rng.js?v=130"></script>
+  <script src="shared/schema.js?v=130"></script>
+  <script src="js/vendor/socket.io.min.js?v=130"></script>
+  <script type="module" src="js/main.js?v=130"></script>
 </body>
 </html>

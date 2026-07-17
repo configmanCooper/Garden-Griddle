@@ -56,12 +56,14 @@ async function clickTarget(page, type, id, holdMs) {
   }
 
   try {
-    await host.goto(url, { waitUntil: 'load' });
+    await host.goto(url, { waitUntil: 'load', timeout: 90000 });
     await host.waitForFunction(() => window.game && window.game.render);
     await host.waitForFunction(() => window.game.state.connected);
     await host.click('#open-settings-title');
     await host.check('#setting-reduced-motion');
     assert.strictEqual(await host.evaluate(() => document.body.classList.contains('reduced-motion') && window.game.render.reducedMotion), true);
+    await host.uncheck('#setting-reduced-motion');
+    assert.strictEqual(await host.evaluate(() => window.game.render.reducedMotion), false);
     await host.click('#settings-modal .modal-close');
     await host.click('#open-help-title');
     await host.waitForSelector('#help-modal:not(.hidden)');
@@ -70,8 +72,12 @@ async function clickTarget(page, type, id, holdMs) {
     await host.click('#create-room');
     await host.waitForSelector('#screen-room.active');
     const code = await host.textContent('#room-code');
+    assert.strictEqual(await host.locator('#day-picker .day-choice').count(), 100, 'Campaign picker contains 100 scrollable days.');
+    assert.strictEqual(await host.isEnabled('#day-picker .day-choice:nth-child(1)'), true);
+    assert.strictEqual(await host.isEnabled('#day-picker .day-choice:nth-child(2)'), false, 'Day 2 is greyed out until Day 1 earns a star.');
+    assert.match(await host.getAttribute('#day-picker .day-choice:nth-child(2)', 'class'), /locked/);
 
-    await guest.goto(url, { waitUntil: 'load' });
+    await guest.goto(url, { waitUntil: 'load', timeout: 90000 });
     await guest.waitForFunction(() => window.game && window.game.render);
     await guest.waitForFunction(() => window.game.state.connected);
     await guest.fill('#player-name', 'Guest');
@@ -79,6 +85,10 @@ async function clickTarget(page, type, id, holdMs) {
     await guest.click('#join-room');
     await guest.waitForSelector('#screen-room.active');
     await host.waitForFunction(() => window.game.state.room && window.game.state.room.players.length === 2);
+    await guest.fill('#restaurant-name', 'Moonlight Crepes');
+    await guest.press('#restaurant-name', 'Enter');
+    await host.waitForFunction(() => window.game.state.room.restaurantName === 'Moonlight Crepes');
+    assert.strictEqual(await host.evaluate(() => window.game.render.restaurantBanner.name), 'Moonlight Crepes');
 
     await host.click('#start-day');
     await host.waitForSelector('#screen-game.active');
@@ -171,6 +181,14 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').crepe.material.map === null);
     const flipResult = await host.evaluate(() => window.game.interact({ type: 'stove', id: 'stove-1' }, false));
     assert.strictEqual(flipResult.ok, true);
+    await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').flipStartedAt > 0);
+    await host.waitForTimeout(320);
+    const flipPose = await host.evaluate(() => {
+      const crepe = window.game.render.stoveViews.get('stove-1').crepe;
+      return { y: crepe.position.y, rotation: crepe.rotation.x };
+    });
+    assert.ok(flipPose.y > 2.25, 'Crepe visibly rises above the griddle during the flip.');
+    assert.ok(Math.abs(flipPose.rotation) > 1, 'Crepe visibly rotates during the flip.');
     await host.waitForFunction(() => ['cookingSecond', 'ready'].includes(window.game.state.snapshot.stoves[0].state));
     await host.waitForFunction(() => !!window.game.render.stoveViews.get('stove-1').crepe.material.map);
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'ready');

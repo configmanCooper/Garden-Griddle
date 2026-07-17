@@ -1,6 +1,6 @@
 # Garden & Griddle
 
-Garden & Griddle is a phone-first online cooperative game for two players. Together, players grow ingredients, milk a cow, prepare batter, cook crepes on three stovetops, and serve a busy restaurant through a 50-level campaign.
+Garden & Griddle is a phone-first online cooperative game for two players. Together, players grow ingredients, milk a cow, prepare batter, cook crepes on three stovetops, and serve a busy restaurant through a 100-day campaign.
 
 The game uses a server-authoritative Node.js + Socket.IO simulation, a procedural Three.js web client, and a Capacitor Android client for Google Play.
 
@@ -22,7 +22,7 @@ npm test
 npm run test:browser
 ```
 
-The suites cover the deterministic simulation, all 50 levels, two-player and solo balance bots, progression, hostile multiplayer cases, reconnects, touch gameplay, two-browser convergence, and worst-case Three.js budgets.
+The suites cover the deterministic simulation, all 100 days, two-player and solo balance bots, progression, hostile multiplayer cases, reconnects, touch gameplay, two-browser convergence, and worst-case Three.js budgets.
 
 ## Android
 

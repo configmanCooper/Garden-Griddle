@@ -45,7 +45,7 @@
   const BATTER_COST = { flour: 3, sugar: 3, milk: 3 };
   const BATTER_YIELD = 10;
   const MAX_UPGRADE_TIER = 5;
-  const UPGRADE_COSTS = [1, 2, 3, 4, 5];
+  const UPGRADE_COSTS = [2, 4, 6, 8, 10];
   const UPGRADES = {
     greenThumb: { name: 'Green Thumb', description: 'Crops grow 6% faster per tier.' },
     quickPour: { name: 'Quick Pour', description: 'Watering completes 15% faster per tier.' },
@@ -86,7 +86,12 @@
       20: { name: 'Lemon Festival', recipeBias: ['lemon-sugar'], burnGraceMultiplier: 0.94 },
       30: { name: 'Banana Bonanza', recipeBias: ['banana', 'banana-sugar', 'strawberry-banana'], burnGraceMultiplier: 0.92 },
       40: { name: 'Garden Gala', recipeBias: ['forest-berry', 'strawberry-banana'], burnGraceMultiplier: 0.9 },
-      50: { name: 'Grand Crepe Jubilee', recipeBias: C.RECIPES.map((recipe) => recipe.id), burnGraceMultiplier: 0.88 }
+      50: { name: 'Grand Crepe Jubilee', recipeBias: C.RECIPES.map((recipe) => recipe.id), burnGraceMultiplier: 0.88 },
+      60: { name: 'Summer Terrace', recipeBias: ['lemon-sugar', 'banana-sugar', 'citrus-berry'], burnGraceMultiplier: 0.88 },
+      70: { name: 'Berry Harvest', recipeBias: ['strawberry-sugar', 'blackberry-sugar', 'forest-berry'], burnGraceMultiplier: 0.86 },
+      80: { name: 'Market Day', recipeBias: ['strawberry-banana', 'citrus-berry', 'forest-berry'], burnGraceMultiplier: 0.84 },
+      90: { name: 'Chef Challenge', recipeBias: C.RECIPES.map((recipe) => recipe.id), burnGraceMultiplier: 0.82 },
+      100: { name: 'Centennial Crepe Feast', recipeBias: C.RECIPES.map((recipe) => recipe.id), burnGraceMultiplier: 0.8 }
     }[level] || null;
   }
 
@@ -112,7 +117,7 @@
       burnGraceMultiplier: milestone ? milestone.burnGraceMultiplier : 1,
       recipeCount: recipeCountForLevel(level),
       orderInterval: Number(orderInterval.toFixed(3)),
-      patience: Number(lerp(40, 18, t).toFixed(3)),
+      patience: Number((lerp(40, 18, t) * 1.2).toFixed(3)),
       prepSeconds: PREP_SECONDS,
       queueCap: Math.min(8, 3 + Math.floor((level - 1) / 8)),
       daySeconds: DAY_SECONDS,
