@@ -36,6 +36,9 @@ export class UI {
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
     byId('held-item').onclick = () => this.game.dropHeldItem();
+    byId('camera-zoom-out').onclick = () => this.game.zoomCamera(0.78);
+    byId('camera-fit').onclick = () => this.game.resetCamera();
+    byId('camera-zoom-in').onclick = () => this.game.zoomCamera(1.28);
     byId('tutorial-toggle').onclick = () => {
       const panel = byId('tutorial-panel');
       panel.classList.toggle('collapsed');

@@ -95,7 +95,7 @@ export class Render3D {
     this.camera = new THREE.OrthographicCamera(-16, 16, 9, -9, 0.1, 100);
     this.camera.position.set(22, CAMERA_HEIGHT, 22);
     this.camera.lookAt(0, 0, 0);
-    this.cameraZoom = 1;
+    this.cameraZoom = this._phoneViewZoom();
     this.cameraPan = new THREE.Vector3(0, 0, 0);
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
@@ -428,13 +428,23 @@ export class Render3D {
   }
 
   panBy(dx, dy) {
-    this.cameraPan.x = THREE.MathUtils.clamp(this.cameraPan.x - dx * 0.015 / this.cameraZoom, -4, 4);
-    this.cameraPan.z = THREE.MathUtils.clamp(this.cameraPan.z - dy * 0.015 / this.cameraZoom, -3, 3);
+    this.cameraPan.x = THREE.MathUtils.clamp(this.cameraPan.x - dx * 0.015 / this.cameraZoom, -10, 10);
+    this.cameraPan.z = THREE.MathUtils.clamp(this.cameraPan.z - dy * 0.015 / this.cameraZoom, -7, 7);
   }
 
   zoomBy(amount) {
-    this.cameraZoom = THREE.MathUtils.clamp(this.cameraZoom * amount, 0.85, 1.6);
+    this.cameraZoom = THREE.MathUtils.clamp(this.cameraZoom * amount, 0.4, 1.8);
     this.resize();
+  }
+
+  resetView() {
+    this.cameraPan.set(0, 0, 0);
+    this.cameraZoom = this._phoneViewZoom();
+    this.resize();
+  }
+
+  _phoneViewZoom() {
+    return Math.min(window.innerWidth || 1000, window.innerHeight || 1000) < 700 ? 0.72 : 1;
   }
 
   setReducedMotion(value) {

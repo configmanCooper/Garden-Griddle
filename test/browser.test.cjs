@@ -85,6 +85,17 @@ async function clickTarget(page, type, id, holdMs) {
     await guest.waitForSelector('#screen-game.active');
     await host.waitForSelector('#tutorial-panel:not(.hidden)');
     assert.match(await host.textContent('#tutorial-list'), /Plant the ingredients/);
+    const originalZoom = await host.evaluate(() => window.game.render.cameraZoom);
+    await host.click('#camera-zoom-out');
+    await host.click('#camera-zoom-out');
+    await host.click('#camera-zoom-out');
+    const farZoom = await host.evaluate(() => window.game.render.cameraZoom);
+    assert.ok(farZoom < originalZoom * 0.55, 'Phone camera can zoom much farther out.');
+    await host.evaluate(() => window.game.render.panBy(-10000, -10000));
+    const farPan = await host.evaluate(() => ({ x: window.game.render.cameraPan.x, z: window.game.render.cameraPan.z }));
+    assert.deepStrictEqual(farPan, { x: 10, z: 7 }, 'Camera can pan across the expanded scene range.');
+    await host.click('#camera-fit');
+    assert.strictEqual(await host.evaluate(() => window.game.render.cameraPan.length()), 0);
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
     room.state.effects.waterSeconds = 0.1;

@@ -390,6 +390,14 @@ class Game {
     this.ui.toast('Ping sent');
   }
 
+  zoomCamera(amount) {
+    this.render.zoomBy(amount);
+  }
+
+  resetCamera() {
+    this.render.resetView();
+  }
+
   loop(time) {
     if (this.state.snapshot) this.render.update(this.state.snapshot, this.state.session);
     if (!this.graphicsLost) this.render.render(time);
