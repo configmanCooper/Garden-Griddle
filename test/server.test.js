@@ -29,12 +29,13 @@ function emitAck(socket, event, payload, timeout) {
   });
 }
 
-function client(url, auth) {
+function client(url, auth, extraHeaders) {
   return connect(url, {
     transports: ['websocket'],
     forceNew: true,
     reconnection: false,
-    auth: Object.assign({ protocol: C.PROTOCOL, clientBuild: C.CLIENT_BUILD }, auth || {})
+    auth: Object.assign({ protocol: C.PROTOCOL, clientBuild: C.CLIENT_BUILD }, auth || {}),
+    extraHeaders: extraHeaders || undefined
   });
 }
 
@@ -56,6 +57,11 @@ async function run() {
     const assetLinks = await fetch(url + '/.well-known/assetlinks.json');
     assert.strictEqual(assetLinks.status, 200);
     assert.match(assetLinks.headers.get('content-type'), /application\/json/);
+
+    const lanClient = client(url, null, { Origin: 'http://192.168.1.5:3100' });
+    sockets.push(lanClient);
+    await connected(lanClient);
+    lanClient.disconnect();
 
     const bad = client(url, { protocol: 999 });
     sockets.push(bad);
