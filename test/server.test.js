@@ -3,6 +3,7 @@
 const assert = require('assert');
 const { io: connect } = require('socket.io-client');
 const C = require('../public/shared/constants.js');
+const Sim = require('../public/shared/sim.js');
 const { createGameServer } = require('../server.js');
 
 function once(socket, event, timeout) {
@@ -85,6 +86,34 @@ async function run() {
     const sameSocketJoin = await emitAck(host, C.EVENTS.JOIN_ROOM, { code: hostSession.code, name: 'Ghost' });
     assert.strictEqual(sameSocketJoin.ok, false);
     assert.match(sameSocketJoin.reason, /Already in a room/);
+    const campaignBeforePractice = JSON.stringify(gameServer.rooms.getRoom(hostSession.code).campaign);
+    const practiceStart = await emitAck(host, C.EVENTS.START_PRACTICE, { level: 1 });
+    assert.strictEqual(practiceStart.ok, true);
+    const practiceRoom = gameServer.rooms.getRoom(hostSession.code);
+    assert.strictEqual(practiceRoom.state.practice, true);
+    assert.strictEqual(practiceRoom.state.level.queueCap, 1);
+    assert.strictEqual(Math.round(practiceRoom.state.level.patience * practiceRoom.state.effects.patienceMultiplier), 600);
+    practiceRoom.state.orders = [{
+      id: 'practice-eating',
+      recipeId: C.RECIPES[0].id,
+      status: 'eating',
+      createdAt: practiceRoom.state.elapsed,
+      expiresAt: practiceRoom.state.elapsed + 600,
+      payAt: practiceRoom.state.elapsed + 10,
+      tip: 0
+    }];
+    practiceRoom.state.stats.spawned = 1;
+    practiceRoom.state.nextOrderAt = practiceRoom.state.elapsed;
+    Sim.step(practiceRoom.state, 0.05);
+    assert.strictEqual(practiceRoom.state.orders.length, 1, 'Practice waits for the eating customer to leave before spawning another.');
+    practiceRoom.state.elapsed = practiceRoom.state.level.daySeconds - 0.01;
+    Sim.step(practiceRoom.state, 0.05);
+    assert.strictEqual(practiceRoom.state.status, 'playing', 'Practice remains endless past the nominal day length.');
+    assert.ok(practiceRoom.state.elapsed > practiceRoom.state.level.daySeconds);
+    const practiceExit = await emitAck(host, C.EVENTS.EXIT_PRACTICE, {});
+    assert.strictEqual(practiceExit.ok, true);
+    assert.strictEqual(gameServer.rooms.getRoom(hostSession.code).status, 'lobby');
+    assert.strictEqual(JSON.stringify(gameServer.rooms.getRoom(hostSession.code).campaign), campaignBeforePractice, 'Practice never changes progression.');
 
     const guest = client(url);
     sockets.push(guest);

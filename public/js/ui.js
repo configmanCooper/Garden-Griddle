@@ -30,6 +30,7 @@ export class UI {
       if (this.game.state.room && this.game.state.room.status === 'playing') this.game.returnToGame();
       else this.game.startDay(this.selectedLevel);
     };
+    byId('practice-mode').onclick = () => this.game.startPractice(this.selectedLevel);
     byId('restaurant-name').oninput = (event) => {
       clearTimeout(this.restaurantNameTimer);
       this.restaurantNameTimer = setTimeout(() => this.game.setRestaurantName(event.target.value), 450);
@@ -46,6 +47,7 @@ export class UI {
       const authoritative = this.game.state.room && this.game.state.room.restaurantName;
       if (authoritative) event.target.value = authoritative;
     });
+    byId('copy-room-code').onclick = () => this.game.copyRoomCode();
     byId('share-room').onclick = () => this.game.shareRoom();
     byId('open-shop').onclick = () => this.showShop();
     byId('open-settings-title').onclick = () => this.showSettings();
@@ -56,6 +58,7 @@ export class UI {
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
     byId('pause-back-room').onclick = () => this.game.backToRoom();
+    byId('practice-exit').onclick = () => this.game.exitPractice();
     byId('held-item').onclick = () => this.game.dropHeldItem();
     byId('selected-crop').onclick = () => this.chooseCrop(null);
     byId('camera-left').onclick = () => this.game.panCamera(-4, 0);
@@ -136,6 +139,7 @@ export class UI {
     const activeDay = room.status === 'playing';
     byId('start-day').disabled = activeDay ? false : !isHost || !['lobby', 'results'].includes(room.status);
     byId('start-day').textContent = activeDay ? 'Return to Active Day' : 'Open for the Day';
+    byId('practice-mode').disabled = activeDay || !isHost || !['lobby', 'results'].includes(room.status);
     restaurantInput.disabled = !['lobby', 'results'].includes(room.status);
     byId('room-hint').textContent = activeDay
       ? 'The current day is still active. Return whenever you are ready.'
@@ -186,10 +190,13 @@ export class UI {
 
   updateSnapshot(snapshot, state) {
     if (!snapshot) return;
-    byId('day-timer').textContent = formatTime(snapshot.level.daySeconds - snapshot.elapsed);
+    byId('day-timer').textContent = snapshot.practice ? 'Practice' : formatTime(snapshot.level.daySeconds - snapshot.elapsed);
     const ratio = snapshot.stats.spawned ? snapshot.stats.served / snapshot.stats.spawned : 0;
-    byId('live-stars').textContent = stars(window.GG.Sim ? window.GG.Sim.starsForRatio(ratio) : (ratio >= .9 ? 3 : ratio >= .7 ? 2 : ratio >= .5 ? 1 : 0));
-    byId('serve-score').textContent = snapshot.stats.served + ' / ' + snapshot.stats.spawned + ' served';
+    byId('live-stars').textContent = snapshot.practice ? 'No stars' : stars(window.GG.Sim ? window.GG.Sim.starsForRatio(ratio) : (ratio >= .9 ? 3 : ratio >= .7 ? 2 : ratio >= .5 ? 1 : 0));
+    byId('serve-score').textContent = snapshot.practice
+      ? snapshot.stats.served + ' served'
+      : snapshot.stats.served + ' / ' + snapshot.stats.spawned + ' served';
+    byId('practice-exit').classList.toggle('hidden', !snapshot.practice);
     this.renderOrders(snapshot, state.selectedOrderId);
     this.renderResources(snapshot);
     this.renderTutorial(snapshot);

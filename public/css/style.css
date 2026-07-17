@@ -77,6 +77,9 @@ button { cursor: pointer; }
 .level-stars { min-height: 24px; color: var(--gold); font-size: 20px; }
 .level-details { min-height: 40px; color: var(--ink-soft); text-align: center; font-size: 12px; line-height: 1.45; }
 #start-day { width: 100%; margin-top: 8px; }
+.room-mode-actions { display: grid; grid-template-columns: minmax(150px, .38fr) minmax(220px, 1fr); gap: 10px; margin-top: 8px; }
+.room-mode-actions #start-day { margin-top: 0; }
+.room-mode-actions #practice-mode { background: #7fa466; color: white; text-shadow: 0 1px 2px #38522c; }
 #room-hint { margin: 8px 0 0; text-align: center; color: var(--ink-soft); font-size: 13px; }
 
 #game-top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); height: 112px; display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(180px, .65fr); gap: 10px; pointer-events: none; }

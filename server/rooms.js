@@ -101,6 +101,7 @@ class RoomManager {
       emptyPaused: false,
       pauseVote: null,
       pauseUntil: 0,
+      practice: false,
       draining: false
     };
     room.selectedLevel = room.campaign.unlockedLevel;
@@ -286,6 +287,73 @@ class RoomManager {
     safeAck(ack, { ok: true, name: context.room.restaurantName });
   }
 
+  startPractice(socket, payload, ack) {
+      const context = this.context(socket);
+      if (!context) return safeAck(ack, { ok: false, reason: 'Not in a room.' });
+      const { room, player } = context;
+      if (this.draining || room.draining) return safeAck(ack, { ok: false, reason: 'Server is preparing to restart.' });
+      if (room.hostId !== player.id) return safeAck(ack, { ok: false, reason: 'Only the host can start practice.' });
+      if (!['lobby', 'results'].includes(room.status)) return safeAck(ack, { ok: false, reason: 'A day is already active.' });
+      const level = Math.max(1, Math.min(C.MAX_LEVEL, Math.floor(Number(payload && payload.level) || room.selectedLevel)));
+      const unlockedLevel = sequentialUnlockedLevel(room.campaign);
+      if (level > unlockedLevel) return safeAck(ack, { ok: false, reason: 'That day is locked.' });
+      const active = [...room.players.values()].filter((item) => item.connected);
+      if (!active.length) return safeAck(ack, { ok: false, reason: 'No connected players.' });
+      room.selectedLevel = level;
+      this.touchRoom(room);
+      for (const item of room.players.values()) {
+        item.lastSeq = 0;
+        item.actionResults.clear();
+        item.rate = { tokens: ACTION_BURST, updatedAt: Date.now() };
+      }
+      room.state = S.createState({
+        level,
+        seed: crypto.randomBytes(4).readUInt32LE(0),
+        playerIds: active.map((item) => item.id),
+        playerNames: active.map((item) => item.name),
+        playerSeats: active.map((item) => item.seat),
+        upgrades: room.campaign.upgrades
+      });
+      room.state.practice = true;
+      room.state.level.practice = true;
+      room.state.level.daySeconds = 24 * 60 * 60;
+      room.state.level.prepSeconds = 2;
+      room.state.level.noSpawnFinalSeconds = 0;
+      room.state.level.orderInterval = 1;
+      room.state.level.queueCap = 1;
+      room.state.level.patience = 600 / room.state.effects.patienceMultiplier;
+      room.state.nextOrderAt = 2;
+      room.status = 'playing';
+      room.practice = true;
+      room.paused = false;
+      room.emptyPaused = false;
+      room.pauseVote = null;
+      room.pauseUntil = 0;
+      this.io.to(room.code).emit(C.EVENTS.DAY_STARTED, { level, practice: true });
+      this.io.to(room.code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
+      this.startLoop(room);
+      this.broadcastRoom(room);
+      safeAck(ack, { ok: true, level, practice: true });
+  }
+
+  exitPractice(socket, ack) {
+      const context = this.context(socket);
+      if (!context || !context.room.practice) return safeAck(ack, { ok: false, reason: 'Practice is not active.' });
+      const room = context.room;
+      if (room.interval) clearInterval(room.interval);
+      room.interval = null;
+      if (room.state) room.state.status = 'practiceEnd';
+      room.state = null;
+      room.status = 'lobby';
+      room.practice = false;
+      room.paused = false;
+      room.pauseVote = null;
+      room.pauseUntil = 0;
+      this.io.to(room.code).emit(C.EVENTS.PRACTICE_ENDED, {});
+      this.broadcastRoom(room);
+      safeAck(ack, { ok: true });
+  }
+
   startDay(socket, payload, ack) {
     const context = this.context(socket);
     if (!context) return safeAck(ack, { ok: false, reason: 'Not in a room.' });
@@ -317,6 +385,7 @@ class RoomManager {
       upgrades: room.campaign.upgrades
     });
     room.status = 'playing';
+    room.practice = false;
     room.paused = false;
     room.emptyPaused = false;
     room.pauseVote = null;
@@ -353,6 +422,14 @@ class RoomManager {
     if (room.interval) {
       clearInterval(room.interval);
       room.interval = null;
+    }
+    if (room.practice) {
+      room.state = null;
+      room.status = 'lobby';
+      room.practice = false;
+      this.io.to(room.code).emit(C.EVENTS.PRACTICE_ENDED, {});
+      this.broadcastRoom(room);
+      return;
     }
     const earned = Sim.applyDayResult(room.campaign, result);
     room.status = 'results';
@@ -509,6 +586,7 @@ class RoomManager {
       status: room.status,
       hostId: room.hostId,
       selectedLevel: room.selectedLevel,
+      practice: room.practice,
       restaurantName: room.restaurantName,
       campaign: room.campaign,
       players: [...room.players.values()]

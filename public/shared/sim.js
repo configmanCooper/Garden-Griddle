@@ -363,7 +363,10 @@
   }
 
   function activeOrderCount(state) {
-    return state.orders.filter((order) => ['waiting', 'cooking', 'ready', 'serving'].includes(order.status)).length;
+    const activeStatuses = state.practice
+      ? ['waiting', 'cooking', 'ready', 'serving', 'eating']
+      : ['waiting', 'cooking', 'ready', 'serving'];
+    return state.orders.filter((order) => activeStatuses.includes(order.status)).length;
   }
 
   function pickRecipe(state) {
@@ -380,7 +383,9 @@
   function spawnOrder(state) {
     const recipe = pickRecipe(state);
     const random = R.makeRng((state.seed ^ ((state.orderSerial + 1) * 2246822519)) >>> 0);
-    const patience = state.level.patience * state.effects.patienceMultiplier * (0.92 + random() * 0.16);
+    const patience = state.practice
+      ? 600
+      : state.level.patience * state.effects.patienceMultiplier * (0.92 + random() * 0.16);
     const order = {
       id: 'order-' + (state.orderSerial + 1),
       serial: state.orderSerial + 1,
@@ -457,7 +462,9 @@
     if (state.status !== 'playing') return state.result;
     const delta = Math.max(0, Math.min(0.25, Number(dt) || B.TICK_MS / 1000));
     state.tick += 1;
-    state.elapsed = Math.min(state.level.daySeconds, state.elapsed + delta);
+    state.elapsed = state.practice
+      ? state.elapsed + delta
+      : Math.min(state.level.daySeconds, state.elapsed + delta);
 
     for (const player of Object.values(state.players)) {
       if (player.task && player.task.completeAt <= state.elapsed + EPS) completeTask(state, player);
@@ -523,7 +530,9 @@
       }
     }
 
-    const spawnCutoff = state.level.daySeconds - state.level.noSpawnFinalSeconds;
+    const spawnCutoff = state.practice
+      ? Number.POSITIVE_INFINITY
+      : state.level.daySeconds - state.level.noSpawnFinalSeconds;
     if (state.elapsed + EPS >= state.nextOrderAt && state.elapsed < spawnCutoff) {
       if (activeOrderCount(state) < state.level.queueCap) {
         spawnOrder(state);
@@ -533,7 +542,7 @@
       }
     }
 
-    if (state.elapsed + EPS >= state.level.daySeconds) return finishDay(state);
+    if (!state.practice && state.elapsed + EPS >= state.level.daySeconds) return finishDay(state);
     return null;
   }
 

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#493224">
   <title>Garden &amp; Griddle</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/style.css?v=134">
+  <link rel="stylesheet" href="css/style.css?v=135">
 </head>
 <body>
   <canvas id="game-canvas" aria-label="Garden and restaurant game"></canvas>
@@ -50,6 +50,7 @@
             <strong id="room-code">------</strong>
           </div>
           <div class="header-actions">
+            <button id="copy-room-code" class="btn small">Copy code</button>
             <button id="share-room" class="btn small">Share invite</button>
             <button id="open-shop" class="btn small">Upgrades</button>
             <button id="open-settings-room" class="btn small">Settings</button>
@@ -68,7 +69,10 @@
           <div id="day-picker" class="day-picker" role="listbox" aria-label="Select campaign day"></div>
           <div id="level-stars" class="level-stars"></div>
           <div id="level-details" class="level-details"></div>
-          <button id="start-day" class="btn primary">Open for the Day</button>
+          <div class="room-mode-actions">
+            <button id="practice-mode" class="btn">Practice Mode</button>
+            <button id="start-day" class="btn primary">Open for the Day</button>
+          </div>
           <p id="room-hint">Waiting for your partner...</p>
         </div>
       </div>
@@ -87,6 +91,7 @@
           <div><strong id="partner-name">Partner</strong><small id="partner-status">Connected</small></div>
           <button id="pause-game" class="icon-btn" aria-label="Pause">II</button>
           <button id="open-help-game" class="icon-btn" aria-label="How to play">?</button>
+          <button id="practice-exit" class="btn small hidden">Exit Practice</button>
         </div>
       </header>
 
@@ -197,11 +202,11 @@
   <div id="rotate-gate"><div><strong>Turn your phone sideways</strong><span>Garden &amp; Griddle is designed for landscape play.</span></div></div>
   <div id="unsupported" class="unsupported hidden"><h1>WebGL2 is needed</h1><p>Please update Android System WebView or use a newer browser.</p></div>
 
-  <script src="shared/constants.js?v=134"></script>
-  <script src="shared/balance.js?v=134"></script>
-  <script src="shared/rng.js?v=134"></script>
-  <script src="shared/schema.js?v=134"></script>
-  <script src="js/vendor/socket.io.min.js?v=134"></script>
-  <script type="module" src="js/main.js?v=134"></script>
+  <script src="shared/constants.js?v=135"></script>
+  <script src="shared/balance.js?v=135"></script>
+  <script src="shared/rng.js?v=135"></script>
+  <script src="shared/schema.js?v=135"></script>
+  <script src="js/vendor/socket.io.min.js?v=135"></script>
+  <script type="module" src="js/main.js?v=135"></script>
 </body>
 </html>

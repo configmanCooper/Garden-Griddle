@@ -43,7 +43,8 @@ class Game {
   handleBack(appPlugin) {
     if (this.ui.closeTopModal()) return;
     if (this.state.screen === 'game') {
-      this.pause();
+      if (this.state.snapshot && this.state.snapshot.practice) this.exitPractice();
+      else this.pause();
       return;
     }
     if (this.state.screen === 'results') {
@@ -171,6 +172,14 @@ class Game {
       Audio.sfx.star();
       this.ui.results(payload);
     });
+    this.net.on(C.EVENTS.PRACTICE_ENDED, () => {
+      this.state.snapshot = null;
+      this.state.paused = false;
+      this.state.viewingRoomDuringGame = false;
+      this.ui.setPaused(false, null);
+      this.ui.show('room');
+      this.ui.toast('Practice ended.');
+    });
     this.net.on(C.EVENTS.CAMPAIGN_UPDATE, ({ campaign }) => {
       this.syncCampaign(campaign);
       if (this.state.room) this.state.room.campaign = campaign;
@@ -267,6 +276,11 @@ class Game {
     if (!result.ok) this.ui.toast(result.reason, true);
   }
 
+  async startPractice(level) {
+    const result = await this.net.startPractice(level);
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
   async setRestaurantName(name) {
     const result = await this.net.setRestaurantName(String(name || '').trim());
     if (!result.ok) this.ui.toast(result.reason, true);
@@ -299,6 +313,31 @@ class Game {
         this.ui.toast('Invite link copied!');
       }
     } catch (_error) {}
+  }
+
+  async copyRoomCode() {
+    const code = (this.state.room && this.state.room.code) || (this.state.session && this.state.session.code);
+    if (!code) return;
+    this.lastCopiedRoomCode = code;
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+        copied = true;
+      }
+    } catch (_error) {}
+    if (!copied) {
+      const input = document.createElement('textarea');
+      input.value = code;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.select();
+      try { copied = document.execCommand('copy'); } catch (_error) {}
+      input.remove();
+    }
+    this.ui.toast(copied ? 'Room code ' + code + ' copied!' : 'Room code: ' + code);
   }
 
   syncCampaign(campaign) {
@@ -420,6 +459,10 @@ class Game {
   }
 
   backToRoom() {
+    if (this.state.snapshot && this.state.snapshot.practice) {
+      this.exitPractice();
+      return;
+    }
     this.state.viewingRoomDuringGame = true;
     this.ui.show('room');
     if (this.state.room) this.ui.updateRoom(this.state.room, this.state.session);
@@ -429,6 +472,11 @@ class Game {
     this.state.viewingRoomDuringGame = false;
     this.ui.show('game');
     this.net.requestSnapshot();
+  }
+
+  async exitPractice() {
+    const result = await this.net.exitPractice();
+    if (!result.ok) this.ui.toast(result.reason, true);
   }
 
   ping(kind) {

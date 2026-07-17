@@ -72,10 +72,29 @@ async function clickTarget(page, type, id, holdMs) {
     await host.click('#create-room');
     await host.waitForSelector('#screen-room.active');
     const code = await host.textContent('#room-code');
+    await host.click('#copy-room-code');
+    await host.waitForFunction((roomCode) => window.game.lastCopiedRoomCode === roomCode, code);
+    assert.match(await host.textContent('#toast'), new RegExp(code));
     assert.strictEqual(await host.locator('#day-picker .day-choice').count(), 100, 'Campaign picker contains 100 scrollable days.');
     assert.strictEqual(await host.isEnabled('#day-picker .day-choice:nth-child(1)'), true);
     assert.strictEqual(await host.isEnabled('#day-picker .day-choice:nth-child(2)'), false, 'Day 2 is greyed out until Day 1 earns a star.');
     assert.match(await host.getAttribute('#day-picker .day-choice:nth-child(2)', 'class'), /locked/);
+    await host.click('#practice-mode');
+    await host.waitForSelector('#screen-game.active');
+    await host.waitForFunction(() => window.game.state.snapshot && window.game.state.snapshot.practice);
+    await host.waitForFunction(() => window.game.state.snapshot.stats.spawned === 1);
+    const practiceState = await host.evaluate(() => {
+      const order = window.game.state.snapshot.orders.find((item) => item.status === 'waiting');
+      return {
+        queueCap: window.game.state.snapshot.level.queueCap,
+        patience: Math.round(order.expiresAt - order.createdAt),
+        timer: document.getElementById('day-timer').textContent,
+        exitVisible: !document.getElementById('practice-exit').classList.contains('hidden')
+      };
+    });
+    assert.deepStrictEqual(practiceState, { queueCap: 1, patience: 600, timer: 'Practice', exitVisible: true });
+    await host.click('#practice-exit');
+    await host.waitForSelector('#screen-room.active');
 
     await guest.goto(url, { waitUntil: 'load', timeout: 90000 });
     await guest.waitForFunction(() => window.game && window.game.render);
@@ -243,7 +262,7 @@ async function clickTarget(page, type, id, holdMs) {
     });
     const flipResult = await host.evaluate(() => window.game.interact({ type: 'stove', id: 'stove-1' }, false));
     assert.strictEqual(flipResult.ok, true);
-    await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').flipStartedAt > 0);
+    await host.waitForFunction(() => window.game.state.snapshot.stoves[0].flippedAt > 0);
     const flipPose = await host.evaluate(() => {
       const view = window.game.render.stoveViews.get('stove-1');
       view.flipStartedAt = performance.now() - 400;
