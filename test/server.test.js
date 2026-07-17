@@ -144,6 +144,12 @@ async function run() {
     const startedPromise = once(guest, C.EVENTS.DAY_STARTED);
     const started = await emitAck(host, C.EVENTS.START_DAY, { level: 1 });
     assert.strictEqual(started.ok, true);
+    const guestPause = await emitAck(guest, C.EVENTS.PAUSE_REQUEST, {});
+    assert.strictEqual(guestPause.ok, true);
+    assert.strictEqual(guestPause.paused, true, 'Either co-op player can pause directly.');
+    const hostUnpause = await emitAck(host, C.EVENTS.PAUSE_REQUEST, {});
+    assert.strictEqual(hostUnpause.ok, true);
+    assert.strictEqual(hostUnpause.paused, false, 'Either co-op player can unpause directly without a vote.');
     const renameDuringDay = await emitAck(guest, C.EVENTS.SET_RESTAURANT_NAME, { name: 'Not During Service' });
     assert.strictEqual(renameDuringDay.ok, false);
     assert.strictEqual((await startedPromise).level, 1);

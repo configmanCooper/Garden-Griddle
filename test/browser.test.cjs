@@ -155,7 +155,7 @@ async function clickTarget(page, type, id, holdMs) {
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
     room.state.effects.waterSeconds = 0.1;
-    room.state.effects.fillPailSeconds = 0.1;
+    room.state.effects.fillPailSeconds = 0.8;
     room.state.effects.harvestSeconds = 0.1;
     room.state.effects.growthMultiplier = 0.08;
 
@@ -169,10 +169,22 @@ async function clickTarget(page, type, id, holdMs) {
     await clickTarget(host, 'pail', 'pail');
     await host.waitForFunction(() => window.game.state.snapshot.pail.holder === window.game.state.session.playerId);
     await clickTarget(host, 'sink', 'sink');
+    await host.waitForFunction(() => {
+      const sink = window.game.render.targets.get('sink-group');
+      return sink.userData.waterStream.visible && sink.userData.sinkWater.visible;
+    });
     await host.waitForFunction(() => window.game.state.snapshot.pail.water === 5);
+    await host.waitForFunction(() => window.game.render.targets.get('pail-group').userData.waterSurface.visible);
+    const fullWaterHeight = await host.evaluate(() => {
+      const pail = window.game.render.targets.get('pail-group');
+      return { visible: pail.userData.waterSurface.visible, y: pail.userData.waterSurface.position.y };
+    });
+    assert.strictEqual(fullWaterHeight.visible, true, 'Filled bucket visibly contains water.');
     await host.waitForFunction(() => document.querySelectorAll('#tutorial-list .tutorial-task.done').length >= 1);
     await clickTarget(host, 'plot', 'plot-1');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'growing');
+    await host.waitForFunction(() => window.game.state.snapshot.pail.water === 4);
+    await host.waitForFunction((fullY) => window.game.render.targets.get('pail-group').userData.waterSurface.position.y < fullY, fullWaterHeight.y);
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'ripe', null, { timeout: 7000 });
     await host.waitForFunction(() => window.game.render.readyCropCount >= 1);
     assert.strictEqual(await host.evaluate(() => new Set(Object.values(window.game.render.cropTextures).map((texture) => texture.uuid)).size), 6, 'Each crop has distinct artwork.');

@@ -413,19 +413,13 @@ class RoomManager {
   requestPause(socket, ack) {
     const context = this.context(socket);
     if (!context || context.room.status !== 'playing') return safeAck(ack, { ok: false, reason: 'No active day.' });
-    const { room, player } = context;
+    const { room } = context;
     if (room.draining) return safeAck(ack, { ok: false, reason: 'Server is preparing to restart.' });
-    const connected = [...room.players.values()].filter((item) => item.connected);
-    if (connected.length <= 1) {
-      room.paused = !room.paused;
-      room.pauseUntil = room.paused ? Date.now() + PAUSE_MAX_MS : 0;
-      this.broadcastPause(room);
-      return safeAck(ack, { ok: true, paused: room.paused });
-    }
-    if (room.pauseVote) return safeAck(ack, { ok: false, reason: 'A pause vote is already active.' });
-    room.pauseVote = { requestedBy: player.id, votes: new Set([player.id]), expiresAt: Date.now() + PAUSE_VOTE_MS };
+    room.pauseVote = null;
+    room.paused = !room.paused;
+    room.pauseUntil = room.paused ? Date.now() + PAUSE_MAX_MS : 0;
     this.broadcastPause(room);
-    safeAck(ack, { ok: true, vote: true });
+    safeAck(ack, { ok: true, paused: room.paused });
   }
 
   votePause(socket, payload, ack) {

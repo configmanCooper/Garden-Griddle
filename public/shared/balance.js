@@ -109,6 +109,13 @@
     orderInterval *= (newServiceSeconds / originalServiceSeconds) / 0.75;
     if (players === 1) orderInterval /= SOLO_ARRIVAL_RATE;
     orderInterval *= intervalScale || 1;
+    let prepSeconds = PREP_SECONDS;
+    if (level === 1) {
+      const normalCount = Math.ceil((DAY_SECONDS - PREP_SECONDS - NO_SPAWN_FINAL_SECONDS) / orderInterval);
+      prepSeconds = 60;
+      const targetCount = Math.max(1, normalCount - 1);
+      orderInterval = (DAY_SECONDS - prepSeconds - NO_SPAWN_FINAL_SECONDS) / Math.max(0.5, targetCount - 0.5);
+    }
     return {
       number: level,
       name: milestone ? milestone.name : 'Day ' + level,
@@ -118,7 +125,7 @@
       recipeCount: recipeCountForLevel(level),
       orderInterval: Number(orderInterval.toFixed(3)),
       patience: Number((lerp(40, 18, t) * 1.2).toFixed(3)),
-      prepSeconds: PREP_SECONDS,
+      prepSeconds,
       queueCap: Math.min(8, 3 + Math.floor((level - 1) / 8)),
       daySeconds: DAY_SECONDS,
       noSpawnFinalSeconds: NO_SPAWN_FINAL_SECONDS,

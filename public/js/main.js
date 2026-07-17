@@ -411,9 +411,7 @@ class Game {
 
   async pause() {
     if (!this.state.room) return;
-    const result = this.state.paused || (document.getElementById('pause-banner').textContent.includes('requested'))
-      ? await this.net.votePause(true)
-      : await this.net.pause();
+    const result = await this.net.pause();
     if (!result.ok) this.ui.toast(result.reason, true);
   }
 

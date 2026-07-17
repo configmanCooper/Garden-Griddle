@@ -164,7 +164,7 @@ Each stovetop has these states:
 
 Every level is exactly 180 seconds:
 
-- Prep phase: 30 seconds on every level before the first customer arrives.
+- Prep phase: 60 seconds on Day 1, then 30 seconds on Days 2–100 before the first customer arrives.
 - Service phase: remainder of the day.
 - No new customers spawn during the final 8 seconds.
 - Existing customers must still be served before the clock reaches zero.
@@ -289,7 +289,7 @@ Server rules:
 - Host transfers to the remaining connected player.
 - Empty rooms expire after 30 minutes.
 - A planned deploy drains connections and refuses new days before shutdown. An unexpected process restart aborts active days without awarding stars and clients receive a clear “day interrupted—no progress lost” result instead of reconnecting forever.
-- Solo rooms may pause immediately. In two-player rooms, pause requires both connected players to approve within 10 seconds and automatically expires after 5 minutes. Backgrounding one phone never unilaterally pauses the other player.
+- In solo or two-player rooms, either connected player may directly pause or unpause at any time without a vote. A pause automatically expires after 5 minutes. Backgrounding one phone does not automatically pause the other player.
 
 ### 7.4 Shared-resource concurrency
 

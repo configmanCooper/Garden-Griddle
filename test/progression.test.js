@@ -93,7 +93,7 @@ function testLevelCurve() {
     assert.ok(duo.feasibility.feasible, 'Compiled level is feasible.');
     assert.ok(solo.orderInterval > duo.orderInterval, 'Solo mode receives fewer orders.');
     assert.ok(duo.queueCap >= 3 && duo.queueCap <= 8);
-    assert.strictEqual(duo.prepSeconds, 30, 'Every level has a 30-second supply-prep window.');
+    assert.strictEqual(duo.prepSeconds, level === 1 ? 60 : 30, 'Prep window matches the authored day pacing.');
     if (milestones[level]) assert.strictEqual(duo.name, milestones[level]);
     if (milestones[level]) assert.ok(duo.burnGraceMultiplier < 1, 'Milestones reduce burn grace.');
     previousRecipes = duo.recipeCount;
@@ -110,8 +110,13 @@ function testLevelCurve() {
     const current = B.compileLevel(level, 2);
     const newCount = Math.ceil((B.DAY_SECONDS - current.prepSeconds - B.NO_SPAWN_FINAL_SECONDS) / current.orderInterval);
     const reduction = 1 - newCount / oldCount;
-    assert.ok(reduction >= 0.18 && reduction <= 0.32, 'Level ' + level + ' customer reduction stays near 25%.');
+    if (level > 1) assert.ok(reduction >= 0.18 && reduction <= 0.32, 'Level ' + level + ' customer reduction stays near 25%.');
   }
+  const standardDay1Interval = (12 * ((B.DAY_SECONDS - B.PREP_SECONDS - B.NO_SPAWN_FINAL_SECONDS) / (B.DAY_SECONDS - 15 - B.NO_SPAWN_FINAL_SECONDS))) / 0.75;
+  const previousDay1Count = Math.ceil((B.DAY_SECONDS - B.PREP_SECONDS - B.NO_SPAWN_FINAL_SECONDS) / standardDay1Interval);
+  const day1 = B.compileLevel(1, 2);
+  const day1Count = Math.ceil((B.DAY_SECONDS - day1.prepSeconds - B.NO_SPAWN_FINAL_SECONDS) / day1.orderInterval);
+  assert.strictEqual(day1Count, previousDay1Count - 1, 'Day 1 has exactly one fewer customer than the prior schedule.');
   assert.ok(B.compileLevel(100, 2).patience < B.compileLevel(1, 2).patience);
   assert.strictEqual(B.compileLevel(1, 2).patience, 48, 'Early customer patience is increased by 20%.');
   assert.strictEqual(B.compileLevel(C.MAX_LEVEL, 2).patience, 21.6, 'Maximum-difficulty patience is increased by 20%.');

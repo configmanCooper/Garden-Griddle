@@ -300,13 +300,24 @@ export class Render3D {
     const bucket = mesh(new THREE.CylinderGeometry(0.52, 0.4, 0.7, 16, 1, true), 0x6d9fc1, { side: THREE.DoubleSide });
     bucket.position.y = 0.38;
     pail.add(bucket);
+    const bucketBottom = mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.075, 16), 0x587f99);
+    bucketBottom.position.y = 0.07;
+    pail.add(bucketBottom);
+    const waterSurface = mesh(
+      new THREE.CylinderGeometry(0.37, 0.37, 0.025, 18),
+      0x59c5ed,
+      { transparent: true, opacity: 0.82, depthWrite: false }
+    );
+    waterSurface.position.y = 0.13;
+    waterSurface.visible = false;
+    pail.add(waterSurface);
     const handle = mesh(new THREE.TorusGeometry(0.46, 0.05, 8, 20, Math.PI), 0xd8e8ef);
     handle.rotation.z = Math.PI;
     handle.position.y = 0.72;
     pail.add(handle);
     pail.position.set(-0.55, 0, 4.3);
     this._target(bucket, { type: 'pail', id: 'pail' });
-    pail.userData.bucket = bucket;
+    pail.userData = { bucket, bucketBottom, waterSurface };
     this.targets.set('pail-group', pail);
     this.scene.add(pail);
 
@@ -554,9 +565,6 @@ export class Render3D {
     const backWall = mesh(new THREE.BoxGeometry(16, 5, 0.3), 0xf5d8a9);
     backWall.position.set(6.5, 2.5, -6.6);
     this.scene.add(backWall);
-    const wallTrim = mesh(new THREE.BoxGeometry(16, 0.42, 0.12), 0x9e5c38);
-    wallTrim.position.set(6.5, 0.55, -6.4);
-    this.scene.add(wallTrim);
     const mural = new THREE.Mesh(
       new THREE.PlaneGeometry(10.5, 2.05),
       new THREE.MeshBasicMaterial({ map: this._makeCrepeMuralTexture(), transparent: true })
@@ -576,28 +584,17 @@ export class Render3D {
       new THREE.Vector3(6, 0.72, 0.26)
     ));
     this.scene.add(frontWalls);
-    const entryMat = mesh(new THREE.PlaneGeometry(4, 2.3), 0xb98858);
-    entryMat.rotation.x = -Math.PI / 2;
-    entryMat.position.set(6.5, 0.255, 5.65);
-    this.scene.add(entryMat);
 
     const fridgeGroup = new THREE.Group();
     const fridgeBody = mesh(new THREE.BoxGeometry(2.2, 3.9, 1.9), 0xb9ced5);
     fridgeBody.position.y = 1.95;
     fridgeGroup.add(fridgeBody);
-    const freezerDoor = mesh(new THREE.BoxGeometry(1.9, 1.05, 0.13), 0xeaf3f5);
-    freezerDoor.position.set(0, 3.12, 1.01);
-    fridgeGroup.add(freezerDoor);
     const fridgeDoorPivot = new THREE.Group();
     fridgeDoorPivot.position.set(0.95, 1.68, 1.01);
     const fridgeDoor = mesh(new THREE.BoxGeometry(1.9, 2.35, 0.13), 0xdcebee);
     fridgeDoor.position.x = -0.95;
     fridgeDoorPivot.add(fridgeDoor);
     fridgeGroup.add(fridgeDoorPivot);
-    const handles = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), material(0x6e838a), 2);
-    handles.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0.7, 3.12, 1.12));
-    handles.setMatrixAt(1, new THREE.Matrix4().makeTranslation(0.7, 1.85, 1.12));
-    fridgeGroup.add(handles);
     fridgeGroup.position.set(1.2, 0, -4.8);
     fridgeGroup.userData = { doorPivot: fridgeDoorPivot, door: fridgeDoor };
     this.targets.set('fridge-group', fridgeGroup);
@@ -607,20 +604,43 @@ export class Render3D {
     const sinkCabinet = mesh(new THREE.BoxGeometry(2.15, 1.35, 1.8), 0x8d7666);
     sinkCabinet.position.y = 0.68;
     sinkGroup.add(sinkCabinet);
-    const sinkBasin = mesh(new THREE.CylinderGeometry(0.78, 0.58, 0.34, 22), 0xaebfc5);
-    sinkBasin.position.y = 1.48;
+    const counterTop = mesh(new THREE.BoxGeometry(2.35, 0.18, 2), 0x59686d);
+    counterTop.position.y = 1.4;
+    sinkGroup.add(counterTop);
+    const steelMaterial = new THREE.MeshPhongMaterial({
+      color: 0xb9c6ca,
+      specular: 0xf4ffff,
+      shininess: 82,
+      side: THREE.DoubleSide
+    });
+    const sinkBasin = new THREE.Mesh(
+      new THREE.SphereGeometry(0.78, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+      steelMaterial
+    );
+    sinkBasin.rotation.x = Math.PI;
+    sinkBasin.scale.z = 0.82;
+    sinkBasin.position.y = 1.58;
     sinkGroup.add(sinkBasin);
-    const faucet = mesh(new THREE.TorusGeometry(0.42, 0.065, 8, 18, Math.PI), 0x667b82);
+    const faucetMaterial = new THREE.MeshPhongMaterial({
+      color: 0x87999f,
+      specular: 0xffffff,
+      shininess: 105
+    });
+    const faucet = new THREE.Mesh(new THREE.TorusGeometry(0.43, 0.07, 9, 20, Math.PI), faucetMaterial);
     faucet.rotation.z = Math.PI / 2;
-    faucet.position.set(0, 1.95, -0.25);
+    faucet.position.set(-0.05, 2.02, -0.42);
     sinkGroup.add(faucet);
-    const waterStream = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.65, 8), 0x58bde9, { transparent: true, opacity: 0.72 });
-    waterStream.position.set(0.4, 1.55, -0.25);
+    const waterStream = mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.72, 10), 0x58bde9, { transparent: true, opacity: 0.76, depthWrite: false });
+    waterStream.position.set(0.42, 1.66, -0.42);
     waterStream.visible = false;
     sinkGroup.add(waterStream);
+    const sinkWater = mesh(new THREE.CylinderGeometry(0.59, 0.59, 0.035, 24), 0x69c7e9, { transparent: true, opacity: 0.46, depthWrite: false });
+    sinkWater.position.set(0, 1.39, 0);
+    sinkWater.visible = false;
+    sinkGroup.add(sinkWater);
     sinkGroup.position.set(1.3, 0, 3.8);
     this._target(sinkBasin, { type: 'sink', id: 'sink' });
-    sinkGroup.userData = { waterStream, faucet };
+    sinkGroup.userData = { waterStream, sinkWater, faucet };
     this.targets.set('sink-group', sinkGroup);
     this.scene.add(sinkGroup);
 
@@ -658,23 +678,33 @@ export class Render3D {
     ingredientMesh.instanceColor.needsUpdate = true;
     ingredientMesh.visible = false;
     mixerGroup.add(ingredientMesh);
-    const batterSurface = mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.08, 22), 0xf0cf8b);
+    const batterSurface = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.58, 0.58, 0.08, 22),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: this._makeBatterTexture() })
+    );
     batterSurface.position.set(0, 1.47, 0);
     batterSurface.visible = false;
     mixerGroup.add(batterSurface);
-    const blenderHead = mesh(new THREE.BoxGeometry(0.62, 0.42, 0.55), 0xb54c3e);
-    blenderHead.position.set(0, 2.6, -0.1);
-    mixerGroup.add(blenderHead);
-    const blenderShaft = mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.08, 10), 0x69777c);
-    blenderShaft.position.set(0, 2.08, 0);
-    mixerGroup.add(blenderShaft);
-    const whisk = mesh(new THREE.TorusGeometry(0.18, 0.035, 7, 16), 0x69777c);
-    whisk.rotation.x = Math.PI / 2;
-    whisk.position.set(0, 1.58, 0);
-    mixerGroup.add(whisk);
+    const mixerAppliance = new THREE.Group();
+    const motorBody = mesh(new THREE.CapsuleGeometry(0.25, 0.5, 6, 12), 0xb74f41);
+    motorBody.rotation.z = Math.PI / 2;
+    mixerAppliance.add(motorBody);
+    const handle = mesh(new THREE.TorusGeometry(0.25, 0.07, 8, 18, Math.PI), 0x71362f);
+    handle.rotation.y = Math.PI / 2;
+    handle.position.set(0.05, 0.28, 0);
+    mixerAppliance.add(handle);
+    const shafts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.035, 0.92, 8), material(0x68777c), 2);
+    shafts.setMatrixAt(0, new THREE.Matrix4().makeTranslation(-0.16, -0.63, 0));
+    shafts.setMatrixAt(1, new THREE.Matrix4().makeTranslation(0.16, -0.63, 0));
+    mixerAppliance.add(shafts);
+    const beaters = new THREE.InstancedMesh(new THREE.TorusGeometry(0.14, 0.025, 6, 14), material(0x7a8a8f), 2);
+    mixerAppliance.add(beaters);
+    mixerAppliance.position.set(-0.78, 2.72, -0.22);
+    mixerAppliance.rotation.z = -0.24;
+    mixerGroup.add(mixerAppliance);
     mixerGroup.position.set(4.2, 0, -4.6);
     this._target(bowl, { type: 'mixer', id: 'mixer' });
-    mixerGroup.userData = { bowl, ingredientMesh, batterSurface, blenderHead, blenderShaft, whisk };
+    mixerGroup.userData = { bowl, ingredientMesh, batterSurface, mixerAppliance, beaters, shafts };
     this.targets.set('mixer-group', mixerGroup);
     this.scene.add(mixerGroup);
 
@@ -751,6 +781,40 @@ export class Render3D {
     });
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 3.4);
+    return texture;
+  }
+
+  _makeBatterTexture() {
+    const texture = makeCanvasTexture(256, 256, (context, width, height) => {
+      const gradient = context.createRadialGradient(94, 82, 10, 128, 128, 126);
+      gradient.addColorStop(0, '#fff0bd');
+      gradient.addColorStop(0.5, '#e9c979');
+      gradient.addColorStop(1, '#b98642');
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, width, height);
+      context.strokeStyle = 'rgba(255,248,213,.62)';
+      context.lineWidth = 12;
+      context.lineCap = 'round';
+      context.beginPath();
+      for (let angle = 0; angle < Math.PI * 5; angle += 0.16) {
+        const radius = 5 + angle * 6.2;
+        const x = 128 + Math.cos(angle) * radius;
+        const y = 128 + Math.sin(angle) * radius;
+        if (angle === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      }
+      context.stroke();
+      context.fillStyle = 'rgba(120,70,30,.12)';
+      for (let bubble = 0; bubble < 18; bubble += 1) {
+        const angle = bubble * 2.17;
+        const radius = 18 + (bubble * 23) % 82;
+        context.beginPath();
+        context.arc(128 + Math.cos(angle) * radius, 128 + Math.sin(angle) * radius, 3 + bubble % 4, 0, Math.PI * 2);
+        context.fill();
+      }
+    });
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.center.set(0.5, 0.5);
     return texture;
   }
 
@@ -1245,6 +1309,9 @@ export class Render3D {
     const pail = this.targets.get('pail-group');
     const waterRatio = snapshot.pail.capacity ? snapshot.pail.water / snapshot.pail.capacity : 0;
     pail.userData.bucket.material.color.setRGB(0.43 - waterRatio * 0.12, 0.62 + waterRatio * 0.12, 0.76 + waterRatio * 0.16);
+    pail.userData.waterSurface.visible = waterRatio > 0;
+    pail.userData.waterSurface.position.y = 0.13 + waterRatio * 0.5;
+    pail.userData.waterSurface.scale.set(0.82 + waterRatio * 0.18, 1, 0.82 + waterRatio * 0.18);
     if (snapshot.pail.holder && snapshot.players[snapshot.pail.holder]) {
       const holder = snapshot.players[snapshot.pail.holder];
       const avatar = this.playerViews.get(holder ? holder.seat : 0);
@@ -1260,6 +1327,9 @@ export class Render3D {
       if (!view.flipInitialized) {
         view.flipInitialized = true;
         view.lastFlippedAt = stove.flippedAt;
+        if (stove.flippedAt > 0 && snapshot.elapsed - stove.flippedAt < 1.2) {
+          view.flipStartedAt = performance.now();
+        }
       } else if (stove.flippedAt > 0 && stove.flippedAt !== view.lastFlippedAt) {
         view.lastFlippedAt = stove.flippedAt;
         view.flipStartedAt = performance.now();
@@ -1554,23 +1624,46 @@ export class Render3D {
     if (parts.batterSurface.visible) {
       const fill = THREE.MathUtils.clamp((progress - 0.18) / 0.55, 0.2, 1);
       parts.batterSurface.scale.set(0.7 + fill * 0.3, 1, 0.7 + fill * 0.3);
+      if (!this.reducedMotion) parts.batterSurface.material.map.rotation += 0.055;
     }
-    parts.blenderHead.position.y = mixing
-      ? 2.45 + (this.reducedMotion ? 0 : Math.sin(performance.now() * 0.02) * 0.025)
-      : 2.6;
-    parts.blenderShaft.visible = true;
-    parts.whisk.visible = mixing;
-    if (mixing && !this.reducedMotion) {
-      parts.whisk.rotation.z += 0.48;
-      parts.blenderShaft.rotation.y += 0.3;
+    const targetPosition = mixing ? new THREE.Vector3(0, 2.65, 0) : new THREE.Vector3(-0.78, 2.82, -0.22);
+    parts.mixerAppliance.position.lerp(targetPosition, this.reducedMotion ? 1 : 0.16);
+    const targetRotation = mixing ? 0 : -0.24;
+    parts.mixerAppliance.rotation.z += (targetRotation - parts.mixerAppliance.rotation.z) * (this.reducedMotion ? 1 : 0.16);
+    const vibration = mixing && !this.reducedMotion ? Math.sin(performance.now() * 0.05) * 0.012 : 0;
+    parts.mixerAppliance.position.x += vibration;
+    parts.beaterAngle = (parts.beaterAngle || 0) + (mixing && !this.reducedMotion ? 0.7 : 0);
+    for (let index = 0; index < 2; index += 1) {
+      const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, parts.beaterAngle * (index ? -1 : 1), 0));
+      parts.beaters.setMatrixAt(index, new THREE.Matrix4().compose(
+        new THREE.Vector3(index ? 0.16 : -0.16, -1.05, 0),
+        quaternion,
+        new THREE.Vector3(1, 1, 1)
+      ));
     }
+    parts.beaters.instanceMatrix.needsUpdate = true;
   }
 
   _updateKitchenProps(snapshot) {
     const sink = this.targets.get('sink-group');
-    const filling = Object.values(snapshot.players).some((player) => player.task && player.task.kind === 'fillPail');
+    const fillingPlayer = Object.values(snapshot.players).find((player) => player.task && player.task.kind === 'fillPail');
+    const filling = !!fillingPlayer;
     sink.userData.waterStream.visible = filling;
-    if (filling && !this.reducedMotion) sink.userData.waterStream.scale.y = 0.85 + Math.sin(performance.now() * 0.02) * 0.12;
+    sink.userData.sinkWater.visible = filling;
+    if (filling) {
+      const task = fillingPlayer.task;
+      const progress = THREE.MathUtils.clamp((snapshot.elapsed - task.startedAt) / Math.max(0.01, task.completeAt - task.startedAt), 0, 1);
+      const pulse = this.reducedMotion ? 0 : Math.sin(performance.now() * 0.025);
+      sink.userData.waterStream.scale.y = 0.88 + pulse * 0.08;
+      sink.userData.waterStream.material.opacity = 0.66 + pulse * 0.1;
+      sink.userData.sinkWater.scale.set(0.55 + progress * 0.45, 1, 0.55 + progress * 0.45);
+      sink.userData.sinkWater.position.y = 1.37 + progress * 0.035;
+      if (!this.reducedMotion) {
+        const wave = (performance.now() * 0.003) % 1;
+        sink.userData.sinkWater.scale.x += Math.sin(wave * Math.PI * 2) * 0.018;
+        sink.userData.sinkWater.scale.z -= Math.sin(wave * Math.PI * 2) * 0.018;
+      }
+    }
     const fridge = this.targets.get('fridge-group');
     const opened = snapshot.events.some((event) => ['harvested', 'milked'].includes(event.type) && snapshot.elapsed - event.at < 0.9);
     fridge.userData.doorPivot.rotation.y += ((opened ? -0.88 : 0) - fridge.userData.doorPivot.rotation.y) * 0.16;

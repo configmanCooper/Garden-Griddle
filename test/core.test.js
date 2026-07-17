@@ -43,12 +43,12 @@ function testInitialState() {
   equal(state.pail.capacity, 5, 'Pail holds enough water for five plants.');
 }
 
-function testThirtySecondPrep() {
+function testFirstDayPrep() {
   const state = fresh();
-  complete(state, 29.9);
-  equal(state.stats.spawned, 0, 'No customer arrives during the first 30 seconds.');
+  complete(state, 59.9);
+  equal(state.stats.spawned, 0, 'No customer arrives during the first 60 seconds of Day 1.');
   complete(state, 0.2);
-  equal(state.stats.spawned, 1, 'The first customer arrives after the 30-second prep window.');
+  equal(state.stats.spawned, 1, 'The first Day 1 customer arrives after one minute.');
 }
 
 function testGardenLoop() {
@@ -268,7 +268,7 @@ function testLevelFeasibility() {
 }
 
 testInitialState();
-testThirtySecondPrep();
+testFirstDayPrep();
 testGardenLoop();
 testSeedReservation();
 testDisconnectReleasesLocks();
