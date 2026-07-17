@@ -83,6 +83,8 @@ export class Net {
   }
 
   exitPractice() { return this.emitAck(C.EVENTS.EXIT_PRACTICE, {}); }
+  restartDay() { return this.emitAck(C.EVENTS.RESTART_DAY, {}); }
+  endDay() { return this.emitAck(C.EVENTS.END_DAY, {}); }
   setRestaurantName(name) { return this.emitAck(C.EVENTS.SET_RESTAURANT_NAME, { name }); }
 
   action(action, payload) {

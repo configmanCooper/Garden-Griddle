@@ -354,6 +354,74 @@ class RoomManager {
       safeAck(ack, { ok: true });
   }
 
+  restartDay(socket, ack) {
+      const context = this.context(socket);
+      if (!context || !context.room.state || context.room.status !== 'playing') {
+        return safeAck(ack, { ok: false, reason: 'No active day to restart.' });
+      }
+      const room = context.room;
+      const oldState = room.state;
+      const level = oldState.level.number;
+      const practice = !!room.practice;
+      const active = [...room.players.values()].filter((item) => item.connected);
+      if (!active.length) return safeAck(ack, { ok: false, reason: 'No connected players.' });
+      for (const item of room.players.values()) {
+        item.lastSeq = 0;
+        item.actionResults.clear();
+        item.rate = { tokens: ACTION_BURST, updatedAt: Date.now() };
+      }
+      room.state = S.createState({
+        level,
+        seed: oldState.seed,
+        playerIds: active.map((item) => item.id),
+        playerNames: active.map((item) => item.name),
+        playerSeats: active.map((item) => item.seat),
+        upgrades: room.campaign.upgrades
+      });
+      if (practice) {
+        room.state.practice = true;
+        room.state.level.practice = true;
+        room.state.level.daySeconds = 24 * 60 * 60;
+        room.state.level.prepSeconds = 2;
+        room.state.level.noSpawnFinalSeconds = 0;
+        room.state.level.orderInterval = 1;
+        room.state.level.queueCap = 1;
+        room.state.level.patience = 600 / room.state.effects.patienceMultiplier;
+        room.state.nextOrderAt = 2;
+      }
+      room.paused = false;
+      room.pauseVote = null;
+      room.pauseUntil = 0;
+      this.io.to(room.code).emit(C.EVENTS.DAY_STARTED, { level, practice, restarted: true });
+      this.io.to(room.code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
+      this.broadcastPause(room);
+      this.broadcastRoom(room);
+      this.startLoop(room);
+      safeAck(ack, { ok: true, level, practice });
+  }
+
+  endDay(socket, ack) {
+      const context = this.context(socket);
+      if (!context || !context.room.state || context.room.status !== 'playing') {
+        return safeAck(ack, { ok: false, reason: 'No active day to end.' });
+      }
+      const room = context.room;
+      const practice = !!room.practice;
+      if (room.interval) clearInterval(room.interval);
+      room.interval = null;
+      room.state.status = 'cancelled';
+      room.state = null;
+      room.status = 'lobby';
+      room.practice = false;
+      room.paused = false;
+      room.pauseVote = null;
+      room.pauseUntil = 0;
+      this.io.to(room.code).emit(C.EVENTS.DAY_CANCELLED, { practice });
+      this.broadcastPause(room);
+      this.broadcastRoom(room);
+      safeAck(ack, { ok: true });
+  }
+
   startDay(socket, payload, ack) {
     const context = this.context(socket);
     if (!context) return safeAck(ack, { ok: false, reason: 'Not in a room.' });

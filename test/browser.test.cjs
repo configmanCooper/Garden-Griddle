@@ -333,6 +333,19 @@ async function clickTarget(page, type, id, holdMs) {
 
     await guest.evaluate(() => window.game.pause());
     await host.waitForFunction(() => window.game.state.paused);
+    await host.click('#pause-resume');
+    await host.waitForFunction(() => !window.game.state.paused);
+    await guest.evaluate(() => window.game.pause());
+    await host.waitForFunction(() => window.game.state.paused);
+    room.state.elapsed = 40;
+    room.state.fridge.flour = 9;
+    gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
+    await host.click('#pause-restart-day');
+    await host.waitForFunction(() => !window.game.state.paused
+      && window.game.state.snapshot.elapsed < 2
+      && window.game.state.snapshot.fridge.flour === 0);
+    await guest.evaluate(() => window.game.pause());
+    await host.waitForFunction(() => window.game.state.paused);
     await host.click('#pause-back-room');
     await host.waitForSelector('#screen-room.active');
     assert.strictEqual(await host.textContent('#start-day'), 'Return to Active Day');

@@ -57,7 +57,10 @@ export class UI {
     byId('results-shop').onclick = () => this.showShop();
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
+    byId('pause-resume').onclick = () => this.game.pause();
     byId('pause-back-room').onclick = () => this.game.backToRoom();
+    byId('pause-restart-day').onclick = () => this.game.restartDay();
+    byId('pause-end-day').onclick = () => this.game.endDay();
     byId('practice-exit').onclick = () => this.game.exitPractice();
     byId('held-item').onclick = () => this.game.dropHeldItem();
     byId('selected-crop').onclick = () => this.chooseCrop(null);

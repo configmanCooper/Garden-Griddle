@@ -9,7 +9,7 @@
   'use strict';
 
   const PROTOCOL = 1;
-  const CLIENT_BUILD = '1.3.5';
+  const CLIENT_BUILD = '1.3.6';
   const MAX_LEVEL = 100;
   const MAX_PLAYERS = 2;
 
@@ -74,6 +74,8 @@
     START_DAY: 'start_day',
     START_PRACTICE: 'start_practice',
     EXIT_PRACTICE: 'exit_practice',
+    RESTART_DAY: 'restart_day',
+    END_DAY: 'end_day',
     SET_RESTAURANT_NAME: 'set_restaurant_name',
     SUBMIT_ACTION: 'submit_action',
     BUY_UPGRADE: 'buy_upgrade',
@@ -85,6 +87,7 @@
     ROOM_UPDATE: 'room_update',
     DAY_STARTED: 'day_started',
     PRACTICE_ENDED: 'practice_ended',
+    DAY_CANCELLED: 'day_cancelled',
     SNAPSHOT: 'state_snapshot',
     ACTION_RESULT: 'action_result',
     DAY_ENDED: 'day_ended',

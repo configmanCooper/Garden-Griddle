@@ -180,6 +180,14 @@ class Game {
       this.ui.show('room');
       this.ui.toast('Practice ended.');
     });
+    this.net.on(C.EVENTS.DAY_CANCELLED, () => {
+      this.state.snapshot = null;
+      this.state.paused = false;
+      this.state.viewingRoomDuringGame = false;
+      this.ui.setPaused(false, null);
+      this.ui.show('room');
+      this.ui.toast('Day ended without changing progress.');
+    });
     this.net.on(C.EVENTS.CAMPAIGN_UPDATE, ({ campaign }) => {
       this.syncCampaign(campaign);
       if (this.state.room) this.state.room.campaign = campaign;
@@ -476,6 +484,16 @@ class Game {
 
   async exitPractice() {
     const result = await this.net.exitPractice();
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async restartDay() {
+    const result = await this.net.restartDay();
+    if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  async endDay() {
+    const result = await this.net.endDay();
     if (!result.ok) this.ui.toast(result.reason, true);
   }
 

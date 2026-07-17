@@ -63,6 +63,8 @@ function createGameServer(options) {
     socket.on(C.EVENTS.START_DAY, (payload, ack) => rooms.startDay(socket, payload || {}, ack));
     socket.on(C.EVENTS.START_PRACTICE, (payload, ack) => rooms.startPractice(socket, payload || {}, ack));
     socket.on(C.EVENTS.EXIT_PRACTICE, (_payload, ack) => rooms.exitPractice(socket, ack));
+    socket.on(C.EVENTS.RESTART_DAY, (_payload, ack) => rooms.restartDay(socket, ack));
+    socket.on(C.EVENTS.END_DAY, (_payload, ack) => rooms.endDay(socket, ack));
     socket.on(C.EVENTS.SET_RESTAURANT_NAME, (payload, ack) => rooms.setRestaurantName(socket, payload || {}, ack));
     socket.on(C.EVENTS.SUBMIT_ACTION, (payload, ack) => rooms.submitAction(socket, payload || {}, ack));
     socket.on(C.EVENTS.BUY_UPGRADE, (payload, ack) => rooms.buyUpgrade(socket, payload || {}, ack));

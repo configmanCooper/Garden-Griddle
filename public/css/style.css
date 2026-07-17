@@ -138,6 +138,9 @@ button { cursor: pointer; }
 .pause-banner { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(55,35,25,.42); color: white; font-size: 42px; font-weight: 900; text-shadow: 0 3px 8px #432; }
 .pause-card { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 30px; border-radius: 22px; background: rgba(65,38,24,.88); pointer-events: auto; }
 .pause-card .btn { min-width: 190px; text-shadow: none; }
+.pause-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pause-actions .btn { margin: 0; }
+.btn.danger { background: #a7473d; color: white; }
 
 .overlay-screen { align-items: center; justify-content: center; background: rgba(53,32,20,.58); }
 .modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(53,32,20,.64); padding: 16px; }

@@ -179,6 +179,16 @@ async function run() {
     const hostUnpause = await emitAck(host, C.EVENTS.PAUSE_REQUEST, {});
     assert.strictEqual(hostUnpause.ok, true);
     assert.strictEqual(hostUnpause.paused, false, 'Either co-op player can unpause directly without a vote.');
+    const activeRoom = gameServer.rooms.getRoom(hostSession.code);
+    const campaignBeforeRestart = JSON.stringify(activeRoom.campaign);
+    activeRoom.state.elapsed = 42;
+    activeRoom.state.fridge.flour = 9;
+    const restarted = await emitAck(guest, C.EVENTS.RESTART_DAY, {});
+    assert.strictEqual(restarted.ok, true, 'Either player can restart the shared day.');
+    assert.strictEqual(activeRoom.state.elapsed, 0);
+    assert.strictEqual(activeRoom.state.fridge.flour, 0);
+    assert.strictEqual(activeRoom.paused, false);
+    assert.strictEqual(JSON.stringify(activeRoom.campaign), campaignBeforeRestart, 'Restarting never changes progression.');
     const renameDuringDay = await emitAck(guest, C.EVENTS.SET_RESTAURANT_NAME, { name: 'Not During Service' });
     assert.strictEqual(renameDuringDay.ok, false);
     assert.strictEqual((await startedPromise).level, 1);
@@ -321,6 +331,21 @@ async function run() {
     const createAfterExpiry = await emitAck(expiredHost, C.EVENTS.CREATE_ROOM, { name: 'Fresh Start' });
     assert.strictEqual(createAfterExpiry.ok, true, 'Expired room releases the socket for a new room.');
     await createAfterExpiryPromise;
+
+    const cancelClient = client(url);
+    sockets.push(cancelClient);
+    await connected(cancelClient);
+    const cancelSessionPromise = once(cancelClient, C.EVENTS.SESSION);
+    const cancelCreated = await emitAck(cancelClient, C.EVENTS.CREATE_ROOM, { name: 'Cancel Test' });
+    assert.strictEqual(cancelCreated.ok, true);
+    const cancelSession = await cancelSessionPromise;
+    const cancelRoom = gameServer.rooms.getRoom(cancelSession.code);
+    const cancelCampaign = JSON.stringify(cancelRoom.campaign);
+    assert.strictEqual((await emitAck(cancelClient, C.EVENTS.START_DAY, { level: 1 })).ok, true);
+    assert.strictEqual((await emitAck(cancelClient, C.EVENTS.END_DAY, {})).ok, true);
+    assert.strictEqual(cancelRoom.status, 'lobby');
+    assert.strictEqual(cancelRoom.state, null);
+    assert.strictEqual(JSON.stringify(cancelRoom.campaign), cancelCampaign, 'Ending a day early never changes progression.');
 
     gameServer.rooms.createLimits.set('old-ip', { tokens: 0, updatedAt: Date.now() - 11 * 60 * 1000 });
     gameServer.rooms.cleanup();
