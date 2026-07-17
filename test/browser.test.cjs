@@ -83,6 +83,11 @@ async function clickTarget(page, type, id, holdMs) {
     await host.click('#start-day');
     await host.waitForSelector('#screen-game.active');
     await guest.waitForSelector('#screen-game.active');
+    const backLeftPick = await host.evaluate(() => {
+      const point = window.game.render.clientPointForTarget('plot', 'plot-10');
+      return { point, picked: window.game.render.pick(point.x, point.y) };
+    });
+    assert.deepStrictEqual(backLeftPick.picked, { type: 'plot', id: 'plot-10' }, 'Back-left plot is not blocked by the cow.');
     await host.waitForSelector('#tutorial-panel:not(.hidden)');
     assert.match(await host.textContent('#tutorial-list'), /Plant the ingredients/);
     const originalZoom = await host.evaluate(() => window.game.render.cameraZoom);
@@ -122,6 +127,8 @@ async function clickTarget(page, type, id, holdMs) {
     await clickTarget(host, 'plot', 'plot-1');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'growing');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'ripe', null, { timeout: 7000 });
+    await host.waitForFunction(() => window.game.render.readyCropCount >= 1);
+    assert.strictEqual(await host.evaluate(() => new Set(Object.values(window.game.render.cropTextures).map((texture) => texture.uuid)).size), 6, 'Each crop has distinct artwork.');
     await clickTarget(host, 'plot', 'plot-1');
     await host.waitForFunction(() => window.game.state.snapshot.fridge.flour >= 3);
     const harvested = await host.evaluate(() => window.game.state.snapshot.fridge.flour);

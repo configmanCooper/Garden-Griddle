@@ -272,7 +272,7 @@ export class Render3D {
     milkBadge.position.set(1.25, 2.15, 0);
     cow.add(milkBadge);
     cow.userData = { milkBadge, headPivot, tail, body };
-    cow.position.set(-10.5, 0, 6.1);
+    cow.position.set(-14.6, 0, 7.4);
     this._target(body, { type: 'cow', id: 'cow' });
     this.targets.set('cow-group', cow);
     this.scene.add(cow);
@@ -331,25 +331,27 @@ export class Render3D {
         context.save();
         context.translate(x, y);
         context.rotate(rotation);
-        const gradient = context.createLinearGradient(-rx, 0, rx, 0);
-        gradient.addColorStop(0, '#315e31');
-        gradient.addColorStop(0.45, color);
-        gradient.addColorStop(1, '#9ac36c');
-        context.fillStyle = gradient;
+        context.fillStyle = color;
+        context.strokeStyle = '#2e5d32';
+        context.lineWidth = 5;
         context.beginPath();
         context.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
         context.fill();
-        line(-rx * 0.75, 0, rx * 0.75, 0, 'rgba(235,255,210,.5)', 2);
+        context.stroke();
+        line(-rx * 0.72, 0, rx * 0.72, 0, '#c9e894', 3);
         context.restore();
       };
       const fruit = (x, y, radius, color, highlight) => {
-        const gradient = context.createRadialGradient(x - radius * 0.35, y - radius * 0.4, 1, x, y, radius);
-        gradient.addColorStop(0, highlight || '#fff3c0');
-        gradient.addColorStop(0.3, color);
-        gradient.addColorStop(1, '#4a241d');
-        context.fillStyle = gradient;
+        context.fillStyle = color;
+        context.strokeStyle = '#503329';
+        context.lineWidth = 4;
         context.beginPath();
         context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+        context.fillStyle = highlight || '#fff3c0';
+        context.beginPath();
+        context.arc(x - radius * 0.32, y - radius * 0.34, Math.max(2, radius * 0.24), 0, Math.PI * 2);
         context.fill();
       };
       const soilY = height - 20;
@@ -361,8 +363,8 @@ export class Render3D {
           line(128, soilY, x, top + 25, '#6e8b35', 7);
           for (let grain = 0; grain < 5; grain += 1) {
             const y = top + grain * 10;
-            fruit(x - 7, y, 7, '#d3a63c', '#ffe69a');
-            fruit(x + 7, y + 4, 7, '#d3a63c', '#ffe69a');
+            fruit(x - 7, y, 7, '#efb92e', '#fff3a2');
+            fruit(x + 7, y + 4, 7, '#efb92e', '#fff3a2');
           }
         }
         leaf(105, 225, 45, 8, -0.55, '#6c9a42');
@@ -371,9 +373,9 @@ export class Render3D {
         for (let index = 0; index < 5; index += 1) {
           const x = 78 + index * 25;
           const top = 55 + (index % 2) * 14;
-          line(x, soilY, x + (index - 2) * 4, top, '#5d9b42', 17);
-          for (let joint = 0; joint < 5; joint += 1) line(x - 9, 260 - joint * 38, x + 9, 260 - joint * 38, '#d5e66d', 4);
-          leaf(x, 120 + index * 12, 63, 10, index % 2 ? 0.55 : -0.55, '#73ad4c');
+          line(x, soilY, x + (index - 2) * 4, top, '#79bd42', 18);
+          for (let joint = 0; joint < 5; joint += 1) line(x - 9, 260 - joint * 38, x + 9, 260 - joint * 38, '#e8f06a', 4);
+          leaf(x, 120 + index * 12, 63, 10, index % 2 ? 0.55 : -0.55, '#72c64f');
         }
       } else if (id === 'strawberry') {
         for (let index = 0; index < 9; index += 1) {
@@ -383,12 +385,25 @@ export class Render3D {
         for (const [x, y] of [[85, 225], [126, 245], [169, 214], [145, 182], [104, 190]]) {
           line(128, 205, x, y, '#4b873e', 5);
           context.fillStyle = '#d92e43';
+          context.strokeStyle = '#762337';
+          context.lineWidth = 4;
           context.beginPath();
           context.moveTo(x, y + 17);
           context.bezierCurveTo(x - 17, y + 3, x - 12, y - 13, x, y - 9);
           context.bezierCurveTo(x + 12, y - 13, x + 17, y + 3, x, y + 17);
           context.fill();
+          context.stroke();
           leaf(x, y - 9, 12, 5, 0, '#4d8e40');
+        }
+        for (const [x, y] of [[78, 175], [178, 178]]) {
+          context.fillStyle = '#ffffff';
+          for (let petal = 0; petal < 5; petal += 1) {
+            const angle = petal / 5 * Math.PI * 2;
+            context.beginPath();
+            context.arc(x + Math.cos(angle) * 8, y + Math.sin(angle) * 8, 6, 0, Math.PI * 2);
+            context.fill();
+          }
+          fruit(x, y, 5, '#ffd83f', '#fff8b0');
         }
       } else if (id === 'blackberry') {
         line(128, soilY, 128, 110, '#65472e', 12);
@@ -398,7 +413,7 @@ export class Render3D {
           const y = 180 + Math.sin(angle) * 58;
           line(128, 205, x, y, '#526f35', 5);
           leaf(x, y, 32, 13, angle, '#4e8744');
-          for (let berry = 0; berry < 4; berry += 1) fruit(x + (berry % 2) * 10 - 5, y + Math.floor(berry / 2) * 10 - 5, 7, '#3c2256', '#9d70c2');
+          for (let berry = 0; berry < 4; berry += 1) fruit(x + (berry % 2) * 10 - 5, y + Math.floor(berry / 2) * 10 - 5, 7, '#642c88', '#d596f1');
         }
       } else if (id === 'lemon') {
         line(128, soilY, 128, 105, '#765035', 24);
@@ -408,7 +423,7 @@ export class Render3D {
           const angle = index / 13 * Math.PI * 2;
           leaf(128 + Math.cos(angle) * 58, 130 + Math.sin(angle) * 54, 38, 22, angle, '#4d9144');
         }
-        for (const [x, y] of [[85, 145], [123, 92], [169, 137], [140, 166], [102, 116]]) fruit(x, y, 15, '#e3c52c', '#fff58a');
+        for (const [x, y] of [[85, 145], [123, 92], [169, 137], [140, 166], [102, 116]]) fruit(x, y, 15, '#ffdc28', '#fff9a3');
       } else if (id === 'banana') {
         line(128, soilY, 128, 105, '#75863c', 31);
         for (let index = 0; index < 8; index += 1) {
@@ -697,6 +712,16 @@ export class Render3D {
     this.patienceRings.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.patienceRings.frustumCulled = false;
     this.scene.add(this.patienceRings);
+
+    this.cropReadyRings = new THREE.InstancedMesh(
+      new THREE.TorusGeometry(0.38, 0.055, 7, 24),
+      new THREE.MeshBasicMaterial({ color: 0xffd95a, transparent: true, opacity: 0.82, depthWrite: false }),
+      B.PLOT_COUNT
+    );
+    this.cropReadyRings.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.cropReadyRings.frustumCulled = false;
+    this.cropReadyRings.renderOrder = 7;
+    this.scene.add(this.cropReadyRings);
   }
 
   resize() {
@@ -757,7 +782,10 @@ export class Render3D {
     this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hit = this.raycaster.intersectObjects(this.interactive, false)[0];
+    const hit = this.raycaster.intersectObjects(this.interactive, false).find((candidate) => {
+      const target = candidate.object.userData.target;
+      return !(target && target.type === 'pail' && this.lastSnapshot && this.lastSnapshot.pail.holder);
+    });
     return hit ? hit.object.userData.target : null;
   }
 
@@ -788,12 +816,16 @@ export class Render3D {
       lemon: [0x4e8e45, 0x70a957, 0xf0d34f],
       banana: [0x4c8f48, 0x72ad5b, 0xefc94c]
     };
+    this.readyCropCount = 0;
+    let plotIndex = 0;
     for (const plot of snapshot.plots) {
       const view = this.plotViews.get(plot.id);
       const crop = view.crop;
       if (!plot.crop || plot.state === 'empty') {
         crop.visible = false;
         view.soil.material.color.setHex(0x5a3926);
+        this._setInstance(this.cropReadyRings, plotIndex, new THREE.Vector3(0, -100, 0), 0);
+        plotIndex += 1;
         continue;
       }
       crop.visible = true;
@@ -809,9 +841,19 @@ export class Render3D {
       }
       crop.scale.set(0.42 + stage * 0.62, 0.3 + stage * 0.74, 0.42 + stage * 0.62);
       crop.rotation.z = this.reducedMotion ? 0 : Math.sin(performance.now() * 0.0015 + Number(plot.id.split('-')[1])) * 0.035;
+      crop.position.y = 0.56 + (plot.state === 'ripe' && !this.reducedMotion ? Math.sin(performance.now() * 0.004 + plotIndex) * 0.035 : 0);
       crop.userData.plantMaterial.opacity = plot.state === 'dry' ? 0.78 : 1;
       view.soil.material.color.setHex(plot.state === 'dry' ? 0x76513a : 0x493526);
+      if (plot.state === 'ripe') {
+        const pulse = this.reducedMotion ? 0.86 : 0.82 + Math.sin(performance.now() * 0.005 + plotIndex) * 0.06;
+        this._setInstance(this.cropReadyRings, plotIndex, view.group.position.clone().add(new THREE.Vector3(0, 2.45, 0)), pulse);
+        this.readyCropCount += 1;
+      } else {
+        this._setInstance(this.cropReadyRings, plotIndex, new THREE.Vector3(0, -100, 0), 0);
+      }
+      plotIndex += 1;
     }
+    this.cropReadyRings.instanceMatrix.needsUpdate = true;
 
     const cow = this.targets.get('cow-group');
     cow.userData.milkBadge.visible = snapshot.cow.milk > 0;
@@ -1165,7 +1207,7 @@ export class Render3D {
     const id = lastAction.targetId;
     if (id && this.plotViews.has(id)) return this.plotViews.get(id).group.position.clone().add(new THREE.Vector3(1.6, 0, 0));
     if (id && this.stoveViews.has(id)) return this.stoveViews.get(id).group.position.clone().add(new THREE.Vector3(-1.4, 0, 0));
-    if (lastAction.kind === 'milk') return new THREE.Vector3(-9, 0, 6);
+    if (lastAction.kind === 'milk') return new THREE.Vector3(-13.2, 0, 7.1);
     if (lastAction.kind === 'fillPail') return new THREE.Vector3(0.2, 0, 3.8);
     if (lastAction.kind === 'mixBatter') return new THREE.Vector3(3.1, 0, -4.1);
     if (lastAction.kind === 'pickupPail' || lastAction.kind === 'dropPail') return new THREE.Vector3(-4.5, 0, 4);
