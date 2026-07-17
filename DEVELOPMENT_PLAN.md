@@ -164,7 +164,7 @@ Each stovetop has these states:
 
 Every level is exactly 180 seconds:
 
-- Prep phase: 15 seconds at early levels, scaling down to 8 seconds.
+- Prep phase: 30 seconds on every level before the first customer arrives.
 - Service phase: remainder of the day.
 - No new customers spawn during the final 8 seconds.
 - Existing customers must still be served before the clock reaches zero.
@@ -184,7 +184,7 @@ Levels are generated from authored formulas plus milestone overrides, not 50 dup
 
 Primary difficulty dimensions:
 
-- order interval: approximately 12 seconds at level 1 to 4.5 seconds at level 50
+- order intervals are recalculated against the shorter post-prep service window so actual arrivals remain about 25% below the original curve
 - patience: approximately 40 seconds at level 1 to 18 seconds at level 50
 - prep duration: 15 seconds to 8 seconds
 - active recipe variety: 3 to 10

@@ -79,6 +79,7 @@ function testLevelCurve() {
     assert.ok(duo.feasibility.feasible, 'Compiled level is feasible.');
     assert.ok(solo.orderInterval > duo.orderInterval, 'Solo mode receives fewer orders.');
     assert.ok(duo.queueCap >= 3 && duo.queueCap <= 8);
+    assert.strictEqual(duo.prepSeconds, 30, 'Every level has a 30-second supply-prep window.');
     if (milestones[level]) assert.strictEqual(duo.name, milestones[level]);
     if (milestones[level]) assert.ok(duo.burnGraceMultiplier < 1, 'Milestones reduce burn grace.');
     previousRecipes = duo.recipeCount;
@@ -86,6 +87,17 @@ function testLevelCurve() {
   assert.strictEqual(B.compileLevel(1, 2).recipeCount, 3);
   assert.strictEqual(B.compileLevel(50, 2).recipeCount, 10);
   assert.ok(B.compileLevel(50, 2).orderInterval < B.compileLevel(1, 2).orderInterval);
+  for (let level = 1; level <= C.MAX_LEVEL; level += 1) {
+    const t = (level - 1) / (C.MAX_LEVEL - 1);
+    const oldPrep = 15 + (8 - 15) * t;
+    let oldInterval = 12 + (4.5 - 12) * t;
+    if ([10, 20, 30, 40, 50].includes(level)) oldInterval *= 0.92;
+    const oldCount = Math.ceil((B.DAY_SECONDS - oldPrep - B.NO_SPAWN_FINAL_SECONDS) / oldInterval);
+    const current = B.compileLevel(level, 2);
+    const newCount = Math.ceil((B.DAY_SECONDS - current.prepSeconds - B.NO_SPAWN_FINAL_SECONDS) / current.orderInterval);
+    const reduction = 1 - newCount / oldCount;
+    assert.ok(reduction >= 0.18 && reduction <= 0.32, 'Level ' + level + ' customer reduction stays near 25%.');
+  }
   assert.ok(B.compileLevel(50, 2).patience < B.compileLevel(1, 2).patience);
   const level10 = B.compileLevel(10, 2);
   assert.ok(level10.recipeBias.every((id) => C.RECIPES.slice(0, level10.recipeCount).some((recipe) => recipe.id === id)), 'Milestone recipes respect unlocks.');

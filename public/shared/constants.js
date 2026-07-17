@@ -9,7 +9,7 @@
   'use strict';
 
   const PROTOCOL = 1;
-  const CLIENT_BUILD = '1.2.1';
+  const CLIENT_BUILD = '1.2.2';
   const MAX_LEVEL = 50;
   const MAX_PLAYERS = 2;
 

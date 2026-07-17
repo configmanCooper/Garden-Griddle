@@ -14,6 +14,7 @@
   const TICK_MS = 50;
   const SNAPSHOT_MS = 100;
   const DAY_SECONDS = 180;
+  const PREP_SECONDS = 30;
   const NO_SPAWN_FINAL_SECONDS = 8;
   const STARTING_SEEDS = 20;
   const PLOT_COUNT = 12;
@@ -94,8 +95,13 @@
     const players = clamp(Math.floor(Number(playerCount) || 2), 1, 2);
     const t = (level - 1) / (C.MAX_LEVEL - 1);
     const milestone = milestoneForLevel(level);
+    const originalPrepSeconds = lerp(15, 8, t);
     let orderInterval = lerp(12, 4.5, t);
     if (milestone) orderInterval *= 0.92;
+    // Preserve the new 30-second prep window while targeting 75% of the original arrivals.
+    const originalServiceSeconds = DAY_SECONDS - originalPrepSeconds - NO_SPAWN_FINAL_SECONDS;
+    const newServiceSeconds = DAY_SECONDS - PREP_SECONDS - NO_SPAWN_FINAL_SECONDS;
+    orderInterval *= (newServiceSeconds / originalServiceSeconds) / 0.75;
     if (players === 1) orderInterval /= SOLO_ARRIVAL_RATE;
     orderInterval *= intervalScale || 1;
     return {
@@ -107,7 +113,7 @@
       recipeCount: recipeCountForLevel(level),
       orderInterval: Number(orderInterval.toFixed(3)),
       patience: Number(lerp(40, 18, t).toFixed(3)),
-      prepSeconds: Number(lerp(15, 8, t).toFixed(3)),
+      prepSeconds: PREP_SECONDS,
       queueCap: Math.min(8, 3 + Math.floor((level - 1) / 8)),
       daySeconds: DAY_SECONDS,
       noSpawnFinalSeconds: NO_SPAWN_FINAL_SECONDS,
@@ -247,6 +253,7 @@
     TICK_MS,
     SNAPSHOT_MS,
     DAY_SECONDS,
+    PREP_SECONDS,
     NO_SPAWN_FINAL_SECONDS,
     STARTING_SEEDS,
     PLOT_COUNT,

@@ -43,6 +43,14 @@ function testInitialState() {
   equal(state.pail.capacity, 5, 'Pail holds enough water for five plants.');
 }
 
+function testThirtySecondPrep() {
+  const state = fresh();
+  complete(state, 29.9);
+  equal(state.stats.spawned, 0, 'No customer arrives during the first 30 seconds.');
+  complete(state, 0.2);
+  equal(state.stats.spawned, 1, 'The first customer arrives after the 30-second prep window.');
+}
+
 function testGardenLoop() {
   const state = fresh();
   let result = Sim.applyAction(state, 'p1', C.ACTIONS.PLANT, { plotId: 'plot-1', crop: 'flour' });
@@ -260,6 +268,7 @@ function testLevelFeasibility() {
 }
 
 testInitialState();
+testThirtySecondPrep();
 testGardenLoop();
 testSeedReservation();
 testDisconnectReleasesLocks();

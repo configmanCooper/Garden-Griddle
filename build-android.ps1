@@ -27,7 +27,7 @@ try {
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 Get-ChildItem $dist -Filter 'GardenAndGriddle-*' -ErrorAction SilentlyContinue | Remove-Item -Force
-$version = '1.2.1'
+$version = '1.2.2'
 $artifacts = @{
   'android\app\build\outputs\apk\debug\app-debug.apk' = "GardenAndGriddle-$version-debug.apk"
   'android\app\build\outputs\apk\release\app-release.apk' = "GardenAndGriddle-$version-release.apk"

@@ -179,6 +179,7 @@ export class Render3D {
   }
 
   _buildGarden() {
+    this._buildCropAssets();
     for (let index = 0; index < B.PLOT_COUNT; index += 1) {
       const column = index % 3;
       const row = Math.floor(index / 3);
@@ -279,25 +280,154 @@ export class Render3D {
 
   _makeCrop() {
     const group = new THREE.Group();
-    const stemMat = material(0x4e8a49);
-    const leafMat = material(0x6ca75a);
-    const fruitMat = material(0xe34c5b);
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 1.3, 8), stemMat);
-    stem.position.y = 0.65;
-    group.add(stem);
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), leafMat);
-    leaf.scale.set(1.5, 0.55, 1.25);
-    leaf.position.y = 0.72;
-    group.add(leaf);
-    const fruit = new THREE.Mesh(new THREE.DodecahedronGeometry(0.34, 0), fruitMat);
-    fruit.scale.set(1.15, 0.85, 1.15);
-    fruit.position.y = 1.08;
-    group.add(fruit);
-    const leaves = [leaf];
-    const fruits = [fruit];
-    group.userData = { stem, leaves, fruits, stemMat, leafMat, fruitMat };
+    const plantMaterial = new THREE.MeshLambertMaterial({
+      map: this.cropTextures.flour,
+      transparent: true,
+      alphaTest: 0.08,
+      side: THREE.DoubleSide,
+      depthWrite: true
+    });
+    const plant = new THREE.Mesh(this.cropGeometry, plantMaterial);
+    plant.position.y = 0;
+    group.add(plant);
+    group.userData = { plant, plantMaterial, currentCrop: 'flour' };
     group.visible = false;
     return group;
+  }
+
+  _buildCropAssets() {
+    if (this.cropGeometry) return;
+    const positions = new Float32Array([
+      -0.72, 0, 0, 0.72, 0, 0, 0.72, 1.9, 0, -0.72, 1.9, 0,
+      0, 0, -0.72, 0, 0, 0.72, 0, 1.9, 0.72, 0, 1.9, -0.72
+    ]);
+    const uvs = new Float32Array([
+      0, 0, 1, 0, 1, 1, 0, 1,
+      0, 0, 1, 0, 1, 1, 0, 1
+    ]);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    geometry.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+    geometry.computeVertexNormals();
+    this.cropGeometry = geometry;
+    this.cropTextures = Object.fromEntries(C.CROP_IDS.map((id) => [id, this._makeCropTexture(id)]));
+  }
+
+  _makeCropTexture(id) {
+    const texture = makeCanvasTexture(256, 320, (context, width, height) => {
+      context.clearRect(0, 0, width, height);
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      const line = (x1, y1, x2, y2, color, size) => {
+        context.strokeStyle = color;
+        context.lineWidth = size;
+        context.beginPath();
+        context.moveTo(x1, y1);
+        context.lineTo(x2, y2);
+        context.stroke();
+      };
+      const leaf = (x, y, rx, ry, rotation, color) => {
+        context.save();
+        context.translate(x, y);
+        context.rotate(rotation);
+        const gradient = context.createLinearGradient(-rx, 0, rx, 0);
+        gradient.addColorStop(0, '#315e31');
+        gradient.addColorStop(0.45, color);
+        gradient.addColorStop(1, '#9ac36c');
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+        context.fill();
+        line(-rx * 0.75, 0, rx * 0.75, 0, 'rgba(235,255,210,.5)', 2);
+        context.restore();
+      };
+      const fruit = (x, y, radius, color, highlight) => {
+        const gradient = context.createRadialGradient(x - radius * 0.35, y - radius * 0.4, 1, x, y, radius);
+        gradient.addColorStop(0, highlight || '#fff3c0');
+        gradient.addColorStop(0.3, color);
+        gradient.addColorStop(1, '#4a241d');
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+      };
+      const soilY = height - 20;
+
+      if (id === 'flour') {
+        for (let index = 0; index < 9; index += 1) {
+          const x = 50 + index * 19 + (index % 2) * 5;
+          const top = 72 + (index % 3) * 16;
+          line(128, soilY, x, top + 25, '#6e8b35', 7);
+          for (let grain = 0; grain < 5; grain += 1) {
+            const y = top + grain * 10;
+            fruit(x - 7, y, 7, '#d3a63c', '#ffe69a');
+            fruit(x + 7, y + 4, 7, '#d3a63c', '#ffe69a');
+          }
+        }
+        leaf(105, 225, 45, 8, -0.55, '#6c9a42');
+        leaf(154, 245, 45, 8, 0.55, '#6c9a42');
+      } else if (id === 'sugar') {
+        for (let index = 0; index < 5; index += 1) {
+          const x = 78 + index * 25;
+          const top = 55 + (index % 2) * 14;
+          line(x, soilY, x + (index - 2) * 4, top, '#5d9b42', 17);
+          for (let joint = 0; joint < 5; joint += 1) line(x - 9, 260 - joint * 38, x + 9, 260 - joint * 38, '#d5e66d', 4);
+          leaf(x, 120 + index * 12, 63, 10, index % 2 ? 0.55 : -0.55, '#73ad4c');
+        }
+      } else if (id === 'strawberry') {
+        for (let index = 0; index < 9; index += 1) {
+          const angle = index / 9 * Math.PI * 2;
+          leaf(128 + Math.cos(angle) * 48, 205 + Math.sin(angle) * 28, 34, 16, angle, '#529746');
+        }
+        for (const [x, y] of [[85, 225], [126, 245], [169, 214], [145, 182], [104, 190]]) {
+          line(128, 205, x, y, '#4b873e', 5);
+          context.fillStyle = '#d92e43';
+          context.beginPath();
+          context.moveTo(x, y + 17);
+          context.bezierCurveTo(x - 17, y + 3, x - 12, y - 13, x, y - 9);
+          context.bezierCurveTo(x + 12, y - 13, x + 17, y + 3, x, y + 17);
+          context.fill();
+          leaf(x, y - 9, 12, 5, 0, '#4d8e40');
+        }
+      } else if (id === 'blackberry') {
+        line(128, soilY, 128, 110, '#65472e', 12);
+        for (let index = 0; index < 12; index += 1) {
+          const angle = index / 12 * Math.PI * 2;
+          const x = 128 + Math.cos(angle) * (42 + (index % 3) * 12);
+          const y = 180 + Math.sin(angle) * 58;
+          line(128, 205, x, y, '#526f35', 5);
+          leaf(x, y, 32, 13, angle, '#4e8744');
+          for (let berry = 0; berry < 4; berry += 1) fruit(x + (berry % 2) * 10 - 5, y + Math.floor(berry / 2) * 10 - 5, 7, '#3c2256', '#9d70c2');
+        }
+      } else if (id === 'lemon') {
+        line(128, soilY, 128, 105, '#765035', 24);
+        line(128, 185, 83, 125, '#765035', 10);
+        line(128, 175, 177, 118, '#765035', 10);
+        for (let index = 0; index < 13; index += 1) {
+          const angle = index / 13 * Math.PI * 2;
+          leaf(128 + Math.cos(angle) * 58, 130 + Math.sin(angle) * 54, 38, 22, angle, '#4d9144');
+        }
+        for (const [x, y] of [[85, 145], [123, 92], [169, 137], [140, 166], [102, 116]]) fruit(x, y, 15, '#e3c52c', '#fff58a');
+      } else if (id === 'banana') {
+        line(128, soilY, 128, 105, '#75863c', 31);
+        for (let index = 0; index < 8; index += 1) {
+          const angle = index / 8 * Math.PI * 2 - Math.PI / 2;
+          leaf(128 + Math.cos(angle) * 28, 115 + Math.sin(angle) * 22, 75, 18, angle, '#4f984a');
+        }
+        for (let index = 0; index < 6; index += 1) {
+          context.strokeStyle = '#e1bb27';
+          context.lineWidth = 11;
+          context.beginPath();
+          context.arc(128 + (index - 2.5) * 9, 170 + Math.abs(index - 2.5) * 4, 17, 0.15, Math.PI * 0.9);
+          context.stroke();
+        }
+      }
+    });
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.needsUpdate = true;
+    return texture;
   }
 
   _buildKitchen() {
@@ -438,8 +568,10 @@ export class Render3D {
     const service = mesh(new THREE.BoxGeometry(2.1, 1.5, 11), 0xb87643);
     service.position.set(11.6, 0.75, 0);
     this.scene.add(service);
-    const stools = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), material(0x6d4a35), 3);
-    [-4.2, -1.4, 1.4].forEach((z, index) => stools.setMatrixAt(index, new THREE.Matrix4().makeTranslation(13.2, 0.38, z)));
+    const stools = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), material(0x6d4a35), 8);
+    for (let index = 0; index < 8; index += 1) {
+      stools.setMatrixAt(index, new THREE.Matrix4().makeTranslation(13.2, 0.38, -4.3 + index * 1.25));
+    }
     this.scene.add(stools);
   }
 
@@ -449,14 +581,16 @@ export class Render3D {
     const hairMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.36, 12, 8), material(0x6f4934), 8);
     const armMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.09, 0.72, 8), material(0xf1c9a3), 16);
     const legMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.12, 0.68, 8), material(0x5d514a), 16);
+    const shinMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.11, 0.58, 8), material(0x5d514a), 16);
     const eyeMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.04, 8, 6), material(0x17120f), 16);
     bodyMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     headMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     hairMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     armMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     legMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    shinMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     eyeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    bodyMesh.frustumCulled = headMesh.frustumCulled = hairMesh.frustumCulled = armMesh.frustumCulled = legMesh.frustumCulled = eyeMesh.frustumCulled = false;
+    bodyMesh.frustumCulled = headMesh.frustumCulled = hairMesh.frustumCulled = armMesh.frustumCulled = legMesh.frustumCulled = shinMesh.frustumCulled = eyeMesh.frustumCulled = false;
     for (let index = 0; index < 8; index += 1) {
       this.customerViews.push({
         position: new THREE.Vector3(13.3, 0, -4.3 + index * 1.25),
@@ -466,8 +600,8 @@ export class Render3D {
         payBounceUntil: 0
       });
     }
-    this.customerMeshes = { bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh };
-    this.scene.add(bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh);
+    this.customerMeshes = { bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh };
+    this.scene.add(bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh);
   }
 
   _buildPlayers() {
@@ -663,18 +797,19 @@ export class Render3D {
         continue;
       }
       crop.visible = true;
-      const colors = cropColors[plot.crop];
-      crop.userData.stemMat.color.setHex(colors[0]);
-      crop.userData.leafMat.color.setHex(colors[1]);
-      crop.userData.fruitMat.color.setHex(colors[2]);
+      if (crop.userData.currentCrop !== plot.crop) {
+        crop.userData.currentCrop = plot.crop;
+        crop.userData.plantMaterial.map = this.cropTextures[plot.crop];
+        crop.userData.plantMaterial.needsUpdate = true;
+      }
       let stage = plot.state === 'dry' ? 0.18 : plot.state === 'ripe' ? 1 : 0.35;
       if (plot.state === 'growing') {
         const total = C.CROPS[plot.crop].growSeconds * snapshot.effects.growthMultiplier;
         stage = THREE.MathUtils.clamp(1 - (plot.readyAt - snapshot.elapsed) / total, 0.24, 0.96);
       }
-      crop.scale.setScalar(0.35 + stage * 0.72);
+      crop.scale.set(0.42 + stage * 0.62, 0.3 + stage * 0.74, 0.42 + stage * 0.62);
       crop.rotation.z = this.reducedMotion ? 0 : Math.sin(performance.now() * 0.0015 + Number(plot.id.split('-')[1])) * 0.035;
-      crop.userData.fruits.forEach((fruit) => { fruit.visible = stage > 0.68; });
+      crop.userData.plantMaterial.opacity = plot.state === 'dry' ? 0.78 : 1;
       view.soil.material.color.setHex(plot.state === 'dry' ? 0x76513a : 0x493526);
     }
 
@@ -774,7 +909,7 @@ export class Render3D {
   }
 
   _updateCustomerInstances(activeOrders) {
-    const { bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh } = this.customerMeshes;
+    const { bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh } = this.customerMeshes;
     const now = performance.now() * 0.001;
     const yAxis = new THREE.Vector3(0, 1, 0);
     for (let index = 0; index < 8; index += 1) {
@@ -785,24 +920,24 @@ export class Render3D {
       const bounce = this.reducedMotion ? 0 : Math.sin(now * (eating ? 8 : 3) + index) * (eating ? 0.055 : 0.018);
       const quaternion = new THREE.Quaternion().setFromAxisAngle(yAxis, view.rotationY);
       bodyMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 0.85 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 1.08 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale, scale, scale)
       ));
       headMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 1.58 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 1.78 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale, scale, scale)
       ));
       hairMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 1.82 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 2.02 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale * 0.94, scale * 0.43, scale * 0.94)
       ));
       for (let side = 0; side < 2; side += 1) {
         const armIndex = index * 2 + side;
         const sideSign = side === 0 ? -1 : 1;
-        const local = new THREE.Vector3(sideSign * 0.42, 1.02, eating ? 0.22 : 0).applyAxisAngle(yAxis, view.rotationY);
+        const local = new THREE.Vector3(sideSign * 0.42, 1.22, eating ? 0.22 : 0).applyAxisAngle(yAxis, view.rotationY);
         const armSwing = this.reducedMotion ? 0
           : eating ? Math.sin(now * 9 + side * Math.PI) * 0.45 : Math.sin(now * 3 + index) * 0.08;
         const armQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(armSwing, 0, sideSign * 0.22));
@@ -812,13 +947,21 @@ export class Render3D {
           armQuat,
           new THREE.Vector3(scale, scale, scale)
         ));
-        const legLocal = new THREE.Vector3(sideSign * 0.2, 0.35, 0).applyAxisAngle(yAxis, view.rotationY);
+        const legLocal = new THREE.Vector3(sideSign * 0.2, 0.69, 0.31).applyAxisAngle(yAxis, view.rotationY);
+        const thighQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+        thighQuaternion.premultiply(quaternion);
         legMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
           view.position.clone().add(legLocal),
+          thighQuaternion,
+          new THREE.Vector3(scale, scale, scale)
+        ));
+        const shinLocal = new THREE.Vector3(sideSign * 0.2, 0.38, 0.62).applyAxisAngle(yAxis, view.rotationY);
+        shinMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
+          view.position.clone().add(shinLocal),
           quaternion,
           new THREE.Vector3(scale, scale, scale)
         ));
-        const eyeLocal = new THREE.Vector3(sideSign * 0.14, 1.63 + bounce, 0.3).applyAxisAngle(yAxis, view.rotationY);
+        const eyeLocal = new THREE.Vector3(sideSign * 0.14, 1.83 + bounce, 0.3).applyAxisAngle(yAxis, view.rotationY);
         eyeMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
           view.position.clone().add(eyeLocal),
           quaternion,
@@ -826,7 +969,7 @@ export class Render3D {
         ));
       }
     }
-    for (const instanced of [bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh]) instanced.instanceMatrix.needsUpdate = true;
+    for (const instanced of [bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh]) instanced.instanceMatrix.needsUpdate = true;
   }
 
   _updatePlayerInstances() {
