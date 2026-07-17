@@ -73,7 +73,7 @@ button { cursor: pointer; }
 #game-top { position: absolute; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); height: 112px; display: grid; grid-template-columns: minmax(260px, 1fr) auto minmax(180px, .65fr); gap: 10px; pointer-events: none; }
 .orders { display: flex; align-items: flex-start; gap: 7px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
 .orders::-webkit-scrollbar { display: none; }
-.order-ticket { position: relative; min-width: 116px; max-width: 132px; min-height: 92px; border: 3px solid white; border-radius: 15px; background: var(--paper-strong); color: var(--ink); padding: 7px; box-shadow: 0 5px 12px rgba(40,20,10,.24); text-align: left; }
+.order-ticket { position: relative; flex: 0 0 124px; min-width: 124px; max-width: 138px; min-height: 96px; border: 3px solid white; border-radius: 15px; background: var(--paper-strong); color: var(--ink); padding: 7px; box-shadow: 0 5px 12px rgba(40,20,10,.24); text-align: left; touch-action: manipulation; }
 .order-ticket.selected { border-color: var(--gold); transform: translateY(4px); }
 .order-ticket.urgent { border-color: var(--danger); animation: ticket-pulse .8s infinite alternate; }
 .order-ticket small { display: block; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

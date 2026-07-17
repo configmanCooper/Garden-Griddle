@@ -207,7 +207,7 @@ export class Render3D {
     handle.rotation.z = Math.PI;
     handle.position.y = 0.72;
     pail.add(handle);
-    pail.position.set(-4.3, 0, 4.7);
+    pail.position.set(-0.55, 0, 4.3);
     this._target(bucket, { type: 'pail', id: 'pail' });
     pail.userData.bucket = bucket;
     this.targets.set('pail-group', pail);
@@ -583,9 +583,15 @@ export class Render3D {
     const service = mesh(new THREE.BoxGeometry(2.1, 1.5, 11), 0xb87643);
     service.position.set(11.6, 0.75, 0);
     this.scene.add(service);
+    const stoolX = 13.45;
+    const customerX = 13.5;
+    this.customerSeatX = customerX;
     const stools = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), material(0x6d4a35), 8);
+    this.customerStoolPositions = [];
     for (let index = 0; index < 8; index += 1) {
-      stools.setMatrixAt(index, new THREE.Matrix4().makeTranslation(13.2, 0.38, -4.3 + index * 1.25));
+      const position = new THREE.Vector3(stoolX, 0.38, -4.3 + index * 1.25);
+      stools.setMatrixAt(index, new THREE.Matrix4().makeTranslation(position.x, position.y, position.z));
+      this.customerStoolPositions.push(position);
     }
     this.scene.add(stools);
   }
@@ -608,7 +614,7 @@ export class Render3D {
     bodyMesh.frustumCulled = headMesh.frustumCulled = hairMesh.frustumCulled = armMesh.frustumCulled = legMesh.frustumCulled = shinMesh.frustumCulled = eyeMesh.frustumCulled = false;
     for (let index = 0; index < 8; index += 1) {
       this.customerViews.push({
-        position: new THREE.Vector3(13.3, 0, -4.3 + index * 1.25),
+        position: new THREE.Vector3(this.customerSeatX, 0, -4.3 + index * 1.25),
         rotationY: -Math.PI / 2,
         scale: 0,
         visible: false,
@@ -869,7 +875,7 @@ export class Render3D {
       pail.position.lerp(avatar.position.clone().add(handOffset), 0.28);
       pail.rotation.y += (avatar.rotationY - pail.rotation.y) * 0.25;
     } else {
-      pail.position.lerp(new THREE.Vector3(-4.3, 0, 4.7), 0.18);
+      pail.position.lerp(new THREE.Vector3(-0.55, 0, 4.3), 0.18);
     }
 
     for (const stove of snapshot.stoves) {
@@ -911,7 +917,7 @@ export class Render3D {
         this._setInstance(this.patienceRings, index, new THREE.Vector3(0, -100, 0), 0);
         return;
       }
-      const targetX = order.status === 'eating' ? 12.55 : 13.3;
+      const targetX = 13.5;
       view.position.x += (targetX - view.position.x) * 0.08;
       view.rotationY = -Math.PI / 2;
       view.scale = order.status === 'eating' ? 1.06 : 1;
@@ -962,24 +968,24 @@ export class Render3D {
       const bounce = this.reducedMotion ? 0 : Math.sin(now * (eating ? 8 : 3) + index) * (eating ? 0.055 : 0.018);
       const quaternion = new THREE.Quaternion().setFromAxisAngle(yAxis, view.rotationY);
       bodyMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 1.08 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 1.28 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale, scale, scale)
       ));
       headMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 1.78 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 1.98 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale, scale, scale)
       ));
       hairMesh.setMatrixAt(index, new THREE.Matrix4().compose(
-        new THREE.Vector3(view.position.x, 2.02 + bounce, view.position.z),
+        new THREE.Vector3(view.position.x, 2.22 + bounce, view.position.z),
         quaternion,
         new THREE.Vector3(scale * 0.94, scale * 0.43, scale * 0.94)
       ));
       for (let side = 0; side < 2; side += 1) {
         const armIndex = index * 2 + side;
         const sideSign = side === 0 ? -1 : 1;
-        const local = new THREE.Vector3(sideSign * 0.42, 1.22, eating ? 0.22 : 0).applyAxisAngle(yAxis, view.rotationY);
+        const local = new THREE.Vector3(sideSign * 0.42, 1.42, eating ? 0.28 : 0).applyAxisAngle(yAxis, view.rotationY);
         const armSwing = this.reducedMotion ? 0
           : eating ? Math.sin(now * 9 + side * Math.PI) * 0.45 : Math.sin(now * 3 + index) * 0.08;
         const armQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(armSwing, 0, sideSign * 0.22));
@@ -989,7 +995,7 @@ export class Render3D {
           armQuat,
           new THREE.Vector3(scale, scale, scale)
         ));
-        const legLocal = new THREE.Vector3(sideSign * 0.2, 0.69, 0.31).applyAxisAngle(yAxis, view.rotationY);
+        const legLocal = new THREE.Vector3(sideSign * 0.2, 0.78, 0.28).applyAxisAngle(yAxis, view.rotationY);
         const thighQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
         thighQuaternion.premultiply(quaternion);
         legMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
@@ -997,13 +1003,13 @@ export class Render3D {
           thighQuaternion,
           new THREE.Vector3(scale, scale, scale)
         ));
-        const shinLocal = new THREE.Vector3(sideSign * 0.2, 0.38, 0.62).applyAxisAngle(yAxis, view.rotationY);
+        const shinLocal = new THREE.Vector3(sideSign * 0.2, 0.43, 0.55).applyAxisAngle(yAxis, view.rotationY);
         shinMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
           view.position.clone().add(shinLocal),
           quaternion,
           new THREE.Vector3(scale, scale, scale)
         ));
-        const eyeLocal = new THREE.Vector3(sideSign * 0.14, 1.83 + bounce, 0.3).applyAxisAngle(yAxis, view.rotationY);
+        const eyeLocal = new THREE.Vector3(sideSign * 0.14, 2.03 + bounce, 0.3).applyAxisAngle(yAxis, view.rotationY);
         eyeMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
           view.position.clone().add(eyeLocal),
           quaternion,
@@ -1210,7 +1216,7 @@ export class Render3D {
     if (lastAction.kind === 'milk') return new THREE.Vector3(-13.2, 0, 7.1);
     if (lastAction.kind === 'fillPail') return new THREE.Vector3(0.2, 0, 3.8);
     if (lastAction.kind === 'mixBatter') return new THREE.Vector3(3.1, 0, -4.1);
-    if (lastAction.kind === 'pickupPail' || lastAction.kind === 'dropPail') return new THREE.Vector3(-4.5, 0, 4);
+    if (lastAction.kind === 'pickupPail' || lastAction.kind === 'dropPail') return new THREE.Vector3(-1.45, 0, 4.3);
     return null;
   }
 

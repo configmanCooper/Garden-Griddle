@@ -170,7 +170,7 @@ export class UI {
         this.orderNodes.delete(id);
       }
     }
-    for (const order of active) {
+    active.forEach((order, orderIndex) => {
       const recipe = C.RECIPE_BY_ID[order.recipeId];
       let button = this.orderNodes.get(order.id);
       if (!button) {
@@ -210,8 +210,9 @@ export class UI {
         button._gg.recipeId = recipe.id;
       }
       button._gg.fill.style.width = Math.max(0, Math.min(100, left / (order.expiresAt - order.createdAt) * 100)) + '%';
-      holder.appendChild(button);
-    }
+      const currentNode = holder.children[orderIndex];
+      if (currentNode !== button) holder.insertBefore(button, currentNode || null);
+    });
   }
 
   renderResources(snapshot) {

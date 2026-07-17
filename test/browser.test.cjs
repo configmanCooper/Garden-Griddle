@@ -88,6 +88,15 @@ async function clickTarget(page, type, id, holdMs) {
       return { point, picked: window.game.render.pick(point.x, point.y) };
     });
     assert.deepStrictEqual(backLeftPick.picked, { type: 'plot', id: 'plot-10' }, 'Back-left plot is not blocked by the cow.');
+    const seatingLayout = await host.evaluate(() => ({
+      customers: window.game.render.customerViews.map((view) => ({ x: view.position.x, z: view.position.z })),
+      stools: window.game.render.customerStoolPositions.map((position) => ({ x: position.x, z: position.z }))
+    }));
+    seatingLayout.customers.forEach((customer, index) => {
+      assert.ok(customer.x - 0.46 > 12.65, 'Customer torso stays outside the service bar.');
+      assert.ok(Math.abs(customer.x - seatingLayout.stools[index].x) < 0.1, 'Customer is centered on stool X.');
+      assert.ok(Math.abs(customer.z - seatingLayout.stools[index].z) < 0.01, 'Customer is centered on stool Z.');
+    });
     await host.waitForSelector('#tutorial-panel:not(.hidden)');
     assert.match(await host.textContent('#tutorial-list'), /Plant the ingredients/);
     const originalZoom = await host.evaluate(() => window.game.render.cameraZoom);
@@ -149,7 +158,13 @@ async function clickTarget(page, type, id, holdMs) {
     gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
 
     await host.waitForSelector('.order-ticket:not([disabled])');
+    const firstOrderId = await host.getAttribute('.order-ticket:not([disabled])', 'data-order-id');
+    await host.evaluate(() => { window._stableOrderTicket = document.querySelector('.order-ticket:not([disabled])'); });
+    for (let index = 0; index < 5; index += 1) gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
+    await host.waitForTimeout(350);
+    assert.strictEqual(await host.evaluate(() => window._stableOrderTicket === document.querySelector('.order-ticket:not([disabled])')), true, 'Live snapshots do not detach the order ticket.');
     await host.click('.order-ticket:not([disabled])');
+    await host.waitForFunction((orderId) => window.game.state.selectedOrderId === orderId, firstOrderId);
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'needsFlip');
     await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').crepe.material.map === null);
