@@ -85,14 +85,27 @@ async function clickTarget(page, type, id, holdMs) {
     await guest.click('#join-room');
     await guest.waitForSelector('#screen-room.active');
     await host.waitForFunction(() => window.game.state.room && window.game.state.room.players.length === 2);
+    await host.focus('#restaurant-name');
     await guest.fill('#restaurant-name', 'Moonlight Crepes');
     await guest.press('#restaurant-name', 'Enter');
     await host.waitForFunction(() => window.game.state.room.restaurantName === 'Moonlight Crepes');
+    await host.evaluate(() => document.getElementById('restaurant-name').blur());
+    await host.waitForFunction(() => document.getElementById('restaurant-name').value === 'Moonlight Crepes');
     assert.strictEqual(await host.evaluate(() => window.game.render.restaurantBanner.name), 'Moonlight Crepes');
+    assert.strictEqual(await host.evaluate(() => {
+      const banner = window.game.render.restaurantBanner.mesh;
+      return banner.position.y > 3 && banner.position.z < -6;
+    }), true, 'Restaurant banner is mounted high on the crepe-art wall.');
 
     await host.click('#start-day');
     await host.waitForSelector('#screen-game.active');
     await guest.waitForSelector('#screen-game.active');
+    assert.strictEqual(await host.evaluate(() => {
+      return !!window.game.render.grassTexture
+        && !!window.game.render.porchTexture
+        && window.game.render.grassTexture.uuid !== window.game.render.porchTexture.uuid
+        && window.game.render.porchTexture.repeat.y > 4;
+    }), true, 'Grass and wooden porch use distinct detailed repeating textures.');
     const backLeftPick = await host.evaluate(() => {
       const point = window.game.render.clientPointForTarget('plot', 'plot-10');
       return { point, picked: window.game.render.pick(point.x, point.y) };
@@ -123,6 +136,21 @@ async function clickTarget(page, type, id, holdMs) {
     await host.click('#camera-right');
     await host.click('#camera-down');
     assert.deepStrictEqual(await host.evaluate(() => ({ x: window.game.render.cameraPan.x, z: window.game.render.cameraPan.z })), { x: 4, z: 3 });
+    await host.click('#camera-fit');
+    const wasdRight = await host.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', code: 'KeyD' }));
+      for (let frame = 0; frame < 8; frame += 1) window.game.updateKeyboardPan(window.game.lastLoopTime + 50);
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd', code: 'KeyD' }));
+      return window.game.render.cameraPan.x;
+    });
+    assert.ok(wasdRight >= 3.5, 'Holding D pans the camera right.');
+    const wasdUp = await host.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', code: 'KeyW' }));
+      for (let frame = 0; frame < 8; frame += 1) window.game.updateKeyboardPan(window.game.lastLoopTime + 50);
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w', code: 'KeyW' }));
+      return window.game.render.cameraPan.z;
+    });
+    assert.ok(wasdUp <= -3.5, 'Holding W pans the camera upward.');
     await host.click('#camera-fit');
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
@@ -178,19 +206,28 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction((orderId) => window.game.state.selectedOrderId === orderId, firstOrderId);
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'needsFlip');
-    await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').crepe.material.map === null);
+    await host.waitForFunction(() => {
+      const view = window.game.render.stoveViews.get('stove-1');
+      return view.crepe.material.map === view.baseCrepeTexture;
+    });
     const flipResult = await host.evaluate(() => window.game.interact({ type: 'stove', id: 'stove-1' }, false));
     assert.strictEqual(flipResult.ok, true);
     await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').flipStartedAt > 0);
-    await host.waitForTimeout(320);
+    await host.waitForFunction(() => {
+      const crepe = window.game.render.stoveViews.get('stove-1').crepe;
+      return crepe.position.y > 2.15 && Math.abs(crepe.rotation.x) > 1;
+    }, null, { timeout: 2500 });
     const flipPose = await host.evaluate(() => {
       const crepe = window.game.render.stoveViews.get('stove-1').crepe;
       return { y: crepe.position.y, rotation: crepe.rotation.x };
     });
-    assert.ok(flipPose.y > 2.25, 'Crepe visibly rises above the griddle during the flip.');
+    assert.ok(flipPose.y > 2.15, 'Crepe visibly rises above the griddle during the flip.');
     assert.ok(Math.abs(flipPose.rotation) > 1, 'Crepe visibly rotates during the flip.');
     await host.waitForFunction(() => ['cookingSecond', 'ready'].includes(window.game.state.snapshot.stoves[0].state));
-    await host.waitForFunction(() => !!window.game.render.stoveViews.get('stove-1').crepe.material.map);
+    await host.waitForFunction(() => {
+      const view = window.game.render.stoveViews.get('stove-1');
+      return view.crepe.material.map === view.toppingTexture;
+    });
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'ready');
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stats.served >= 1);

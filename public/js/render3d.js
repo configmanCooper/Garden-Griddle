@@ -136,21 +136,118 @@ export class Render3D {
     sun.position.set(-10, 20, 12);
     this.scene.add(sun);
 
-    const ground = mesh(new THREE.PlaneGeometry(42, 25), 0x94bf79);
+    this.grassTexture = this._makeGrassTexture();
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(42, 25),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: this.grassTexture })
+    );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.03;
     this.scene.add(ground);
 
-    const path = mesh(new THREE.PlaneGeometry(9, 22), 0xd9c39b);
-    path.rotation.x = -Math.PI / 2;
-    path.position.set(-1, 0, 0);
-    this.scene.add(path);
+    this.porchTexture = this._makePorchTexture();
+    const porch = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 13.5),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: this.porchTexture })
+    );
+    porch.rotation.x = -Math.PI / 2;
+    porch.position.set(-2.95, 0.02, 0);
+    this.scene.add(porch);
 
     this._buildGarden();
     this._buildKitchen();
     this._buildCustomers();
     this._buildPlayers();
     this._buildEffects();
+  }
+
+  _makeGrassTexture() {
+    const texture = makeCanvasTexture(512, 512, (context, width, height) => {
+      context.fillStyle = '#769949';
+      context.fillRect(0, 0, width, height);
+      for (let patch = 0; patch < 55; patch += 1) {
+        const x = (patch * 97 + 31) % width;
+        const y = (patch * 173 + 19) % height;
+        const radius = 18 + (patch * 13) % 42;
+        context.fillStyle = patch % 2 ? 'rgba(164,190,91,.13)' : 'rgba(55,111,49,.12)';
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.lineCap = 'round';
+      for (let blade = 0; blade < 190; blade += 1) {
+        const x = (blade * 73 + 11) % width;
+        const y = (blade * 151 + 47) % height;
+        const lean = ((blade * 29) % 9) - 4;
+        const heightValue = 5 + (blade * 17) % 9;
+        context.strokeStyle = blade % 3 === 0 ? 'rgba(198,218,116,.52)' : 'rgba(48,105,43,.48)';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(x, y);
+        context.quadraticCurveTo(x + lean * 0.4, y - heightValue * 0.55, x + lean, y - heightValue);
+        context.stroke();
+      }
+      for (let clover = 0; clover < 22; clover += 1) {
+        const x = (clover * 137 + 67) % width;
+        const y = (clover * 83 + 101) % height;
+        context.fillStyle = 'rgba(102,150,57,.7)';
+        for (let petal = 0; petal < 3; petal += 1) {
+          const angle = petal / 3 * Math.PI * 2;
+          context.beginPath();
+          context.arc(x + Math.cos(angle) * 4, y + Math.sin(angle) * 4, 4, 0, Math.PI * 2);
+          context.fill();
+        }
+        if (clover % 5 === 0) {
+          context.fillStyle = 'rgba(255,239,177,.8)';
+          context.beginPath();
+          context.arc(x, y, 2.4, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    });
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(8, 5);
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    return texture;
+  }
+
+  _makePorchTexture() {
+    const texture = makeCanvasTexture(512, 512, (context, width, height) => {
+      context.fillStyle = '#9b603b';
+      context.fillRect(0, 0, width, height);
+      const boardHeight = 64;
+      for (let y = 0; y < height; y += boardHeight) {
+        context.fillStyle = (y / boardHeight) % 2 ? '#a96b42' : '#8f5635';
+        context.fillRect(0, y + 3, width, boardHeight - 6);
+        context.strokeStyle = '#5d3827';
+        context.lineWidth = 5;
+        context.beginPath();
+        context.moveTo(0, y + 1);
+        context.lineTo(width, y + 1);
+        context.stroke();
+        for (let grain = 0; grain < 7; grain += 1) {
+          const grainY = y + 13 + grain * 7;
+          context.strokeStyle = grain % 2 ? 'rgba(255,196,122,.16)' : 'rgba(69,37,23,.18)';
+          context.lineWidth = 2;
+          context.beginPath();
+          context.moveTo(0, grainY);
+          for (let x = 0; x <= width; x += 48) {
+            context.lineTo(x, grainY + Math.sin((x + y + grain * 17) * 0.035) * 3);
+          }
+          context.stroke();
+        }
+        for (const x of [18, width - 18]) {
+          context.fillStyle = '#4d3023';
+          context.beginPath();
+          context.arc(x, y + boardHeight / 2, 3, 0, Math.PI * 2);
+          context.fill();
+        }
+      }
+    });
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1.4, 4.5);
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    return texture;
   }
 
   _target(meshObject, target) {
@@ -454,8 +551,8 @@ export class Render3D {
     floor.position.set(6.5, 0.1, 0);
     this.scene.add(floor);
 
-    const backWall = mesh(new THREE.BoxGeometry(16, 3.25, 0.3), 0xf5d8a9);
-    backWall.position.set(6.5, 1.62, -6.6);
+    const backWall = mesh(new THREE.BoxGeometry(16, 5, 0.3), 0xf5d8a9);
+    backWall.position.set(6.5, 2.5, -6.6);
     this.scene.add(backWall);
     const wallTrim = mesh(new THREE.BoxGeometry(16, 0.42, 0.12), 0x9e5c38);
     wallTrim.position.set(6.5, 0.55, -6.4);
@@ -582,6 +679,7 @@ export class Render3D {
     this.scene.add(mixerGroup);
 
     const toppingAtlas = this._makeToppingAtlas();
+    const baseCrepeTexture = this._makeCrepeBaseTexture();
     for (let index = 0; index < B.STOVE_COUNT; index += 1) {
       const group = new THREE.Group();
       const base = mesh(new THREE.BoxGeometry(2.4, 1.35, 2.1), 0x6f5848);
@@ -599,8 +697,8 @@ export class Render3D {
       const toppingTexture = toppingAtlas.clone();
       toppingTexture.needsUpdate = true;
       toppingTexture.repeat.set(1 / C.RECIPES.length, 1);
-      crepe.material.map = null;
-      crepe.material.color.setHex(0xe0a75f);
+      crepe.material.map = baseCrepeTexture;
+      crepe.material.color.setHex(0xffffff);
       crepe.position.y = 1.57;
       crepe.visible = false;
       group.add(crepe);
@@ -610,6 +708,7 @@ export class Render3D {
         group,
         ring,
         crepe,
+        baseCrepeTexture,
         toppingTexture,
         hasToppings: false,
         flipStartedAt: 0,
@@ -658,27 +757,14 @@ export class Render3D {
   _makeCrepeMuralTexture() {
     return makeCanvasTexture(1024, 220, (context, width, height) => {
       context.clearRect(0, 0, width, height);
-      const colors = ['#df4055', '#ffdc28', '#642c88', '#efc94c'];
+      const recipes = [1, 0, 2, 3];
       for (let index = 0; index < 4; index += 1) {
         const x = 55 + index * 242;
         context.fillStyle = '#75462f';
         context.fillRect(x, 10, 205, 200);
         context.fillStyle = '#fff3d4';
         context.fillRect(x + 10, 20, 185, 180);
-        context.fillStyle = '#d8944d';
-        context.beginPath();
-        context.arc(x + 102, 110, 68, 0, Math.PI * 2);
-        context.fill();
-        context.strokeStyle = '#8f552f';
-        context.lineWidth = 8;
-        context.stroke();
-        context.fillStyle = colors[index];
-        for (let topping = 0; topping < 5; topping += 1) {
-          const angle = topping / 5 * Math.PI * 2;
-          context.beginPath();
-          context.arc(x + 102 + Math.cos(angle) * 35, 110 + Math.sin(angle) * 35, 13, 0, Math.PI * 2);
-          context.fill();
-        }
+        this._drawCrepeArt(context, x + 102, 110, 68, recipes[index]);
       }
     });
   }
@@ -693,8 +779,8 @@ export class Render3D {
       new THREE.PlaneGeometry(8, 1.9),
       new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
     );
-    banner.position.set(11.7, 3.35, 6.15);
-    banner.rotation.y = Math.PI / 4;
+    banner.position.set(6.5, 4, -6.4);
+    banner.rotation.y = 0;
     this.restaurantBanner = { mesh: banner, canvas, context: canvas.getContext('2d'), texture, name: '' };
     this.scene.add(banner);
     this.setRestaurantName('Garden & Griddle');
@@ -714,26 +800,8 @@ export class Render3D {
     context.roundRect(14, 14, canvas.width - 28, canvas.height - 28, 42);
     context.fill();
     context.stroke();
-    const drawCrepe = (x) => {
-      context.fillStyle = '#e3a659';
-      context.beginPath();
-      context.arc(x, 120, 74, 0, Math.PI * 2);
-      context.fill();
-      context.strokeStyle = '#4b291d';
-      context.lineWidth = 8;
-      context.stroke();
-      context.fillStyle = '#df4055';
-      context.beginPath();
-      context.arc(x - 24, 102, 16, 0, Math.PI * 2);
-      context.arc(x + 28, 133, 15, 0, Math.PI * 2);
-      context.fill();
-      context.fillStyle = '#fff0a8';
-      context.beginPath();
-      context.arc(x + 15, 88, 11, 0, Math.PI * 2);
-      context.fill();
-    };
-    drawCrepe(105);
-    drawCrepe(919);
+    this._drawCrepeArt(context, 105, 120, 74, 1);
+    this._drawCrepeArt(context, 919, 120, 74, 0);
     let fontSize = 72;
     do {
       context.font = `900 ${fontSize}px system-ui, sans-serif`;
@@ -747,6 +815,124 @@ export class Render3D {
     context.strokeText(cleanName, 512, 120);
     context.fillText(cleanName, 512, 120);
     texture.needsUpdate = true;
+  }
+
+  _drawCrepeArt(context, centerX, centerY, radius, recipeIndex) {
+    const recipe = C.RECIPES[recipeIndex] || C.RECIPES[0];
+    const base = context.createRadialGradient(
+      centerX - radius * 0.25,
+      centerY - radius * 0.32,
+      radius * 0.08,
+      centerX,
+      centerY,
+      radius
+    );
+    base.addColorStop(0, '#f8d694');
+    base.addColorStop(0.58, '#dfa45a');
+    base.addColorStop(0.88, '#b96f35');
+    base.addColorStop(1, '#804321');
+    context.fillStyle = base;
+    context.beginPath();
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = '#5f321f';
+    context.lineWidth = Math.max(3, radius * 0.08);
+    context.stroke();
+    for (let spot = 0; spot < 13; spot += 1) {
+      const angle = (spot * 2.399 + recipeIndex * 0.47) % (Math.PI * 2);
+      const distance = radius * (0.18 + ((spot * 37) % 55) / 100);
+      const size = radius * (0.025 + (spot % 3) * 0.015);
+      context.fillStyle = `rgba(117,54,25,${0.16 + (spot % 4) * 0.045})`;
+      context.beginPath();
+      context.ellipse(
+        centerX + Math.cos(angle) * distance,
+        centerY + Math.sin(angle) * distance,
+        size * 1.5,
+        size,
+        angle,
+        0,
+        Math.PI * 2
+      );
+      context.fill();
+    }
+    const toppingKeys = Object.keys(recipe.toppings);
+    toppingKeys.forEach((key, toppingIndex) => {
+      const count = key === 'sugar' ? 11 : key === 'blackberry' ? 3 : 2;
+      for (let item = 0; item < count; item += 1) {
+        const angle = toppingIndex * 2.2 + item * 2.1 + recipeIndex * 0.2;
+        const distance = radius * (0.2 + (item % 3) * 0.17);
+        this._drawCrepeTopping(
+          context,
+          key,
+          centerX + Math.cos(angle) * distance,
+          centerY + Math.sin(angle) * distance,
+          radius * (key === 'sugar' ? 0.035 : 0.15),
+          angle
+        );
+      }
+    });
+  }
+
+  _drawCrepeTopping(context, key, x, y, size, rotation) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    if (key === 'sugar') {
+      context.fillStyle = 'rgba(255,255,245,.9)';
+      context.beginPath();
+      context.arc(0, 0, size, 0, Math.PI * 2);
+      context.fill();
+    } else if (key === 'lemon') {
+      context.fillStyle = '#ffd936';
+      context.strokeStyle = '#a97c12';
+      context.lineWidth = Math.max(2, size * 0.14);
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.arc(0, 0, size, -0.72, 0.72);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.strokeStyle = '#fff3a1';
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.lineTo(size * 0.72, 0);
+      context.stroke();
+    } else if (key === 'strawberry') {
+      context.fillStyle = '#d92f45';
+      context.strokeStyle = '#762337';
+      context.lineWidth = Math.max(2, size * 0.14);
+      context.beginPath();
+      context.moveTo(0, size);
+      context.bezierCurveTo(-size, size * 0.15, -size * 0.72, -size * 0.8, 0, -size * 0.55);
+      context.bezierCurveTo(size * 0.72, -size * 0.8, size, size * 0.15, 0, size);
+      context.fill();
+      context.stroke();
+      context.fillStyle = '#77a743';
+      context.fillRect(-size * 0.38, -size * 0.72, size * 0.76, size * 0.2);
+    } else if (key === 'blackberry') {
+      context.fillStyle = '#51256f';
+      context.strokeStyle = '#2e163e';
+      context.lineWidth = Math.max(1, size * 0.1);
+      for (const [dx, dy] of [[-0.35, -0.25], [0.35, -0.25], [-0.35, 0.3], [0.35, 0.3], [0, 0]]) {
+        context.beginPath();
+        context.arc(dx * size, dy * size, size * 0.42, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      }
+    } else if (key === 'banana') {
+      context.fillStyle = '#f3cd38';
+      context.strokeStyle = '#9d791b';
+      context.lineWidth = Math.max(2, size * 0.14);
+      context.beginPath();
+      context.ellipse(0, 0, size, size * 0.48, 0, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
+      context.fillStyle = '#fff2a0';
+      context.beginPath();
+      context.ellipse(-size * 0.18, -size * 0.12, size * 0.48, size * 0.17, 0, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.restore();
   }
 
   _buildCustomers() {
@@ -784,7 +970,7 @@ export class Render3D {
     );
     this.mealCrepeMesh = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.37, 0.39, 0.055, 24),
-      material(0xe0a75f),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: this._makeCrepeBaseTexture() }),
       8
     );
     this.mealToppingMesh = new THREE.InstancedMesh(
@@ -846,22 +1032,16 @@ export class Render3D {
     canvas.width = width;
     canvas.height = 128;
     const context = canvas.getContext('2d');
-    const colors = { lemon: '#f0d34f', sugar: '#fff4d2', strawberry: '#df4055', blackberry: '#563a75', banana: '#efc94c' };
-    C.RECIPES.forEach((recipe, index) => {
+    C.RECIPES.forEach((_recipe, index) => {
       const left = index * 128;
-      context.fillStyle = '#e0a75f';
+      context.fillStyle = '#b96f35';
       context.fillRect(left, 0, 128, 128);
-      const keys = Object.keys(recipe.toppings);
-      keys.forEach((key, toppingIndex) => {
-        const angle = toppingIndex / Math.max(1, keys.length) * Math.PI * 2 - Math.PI / 2;
-        context.fillStyle = colors[key] || '#fff';
-        context.beginPath();
-        context.arc(left + 64 + Math.cos(angle) * 28, 64 + Math.sin(angle) * 28, key === 'sugar' ? 12 : 18, 0, Math.PI * 2);
-        context.fill();
-        context.strokeStyle = 'rgba(80,40,20,.35)';
-        context.lineWidth = 3;
-        context.stroke();
-      });
+      context.save();
+      context.beginPath();
+      context.rect(left, 0, 128, 128);
+      context.clip();
+      this._drawCrepeArt(context, left + 64, 64, 60, index);
+      context.restore();
     });
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -870,6 +1050,26 @@ export class Render3D {
     texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
     return texture;
+  }
+
+  _makeCrepeBaseTexture() {
+    return makeCanvasTexture(128, 128, (context) => {
+      const base = context.createRadialGradient(48, 42, 5, 64, 64, 60);
+      base.addColorStop(0, '#f8d694');
+      base.addColorStop(0.58, '#dfa45a');
+      base.addColorStop(0.9, '#b96f35');
+      base.addColorStop(1, '#804321');
+      context.fillStyle = base;
+      context.fillRect(0, 0, 128, 128);
+      for (let spot = 0; spot < 18; spot += 1) {
+        const angle = spot * 2.399;
+        const distance = 14 + (spot * 19) % 42;
+        context.fillStyle = `rgba(105,48,22,${0.14 + (spot % 4) * 0.04})`;
+        context.beginPath();
+        context.ellipse(64 + Math.cos(angle) * distance, 64 + Math.sin(angle) * distance, 4 + spot % 3, 2 + spot % 2, angle, 0, Math.PI * 2);
+        context.fill();
+      }
+    });
   }
 
   _buildEffects() {
@@ -1080,11 +1280,11 @@ export class Render3D {
       const hasToppings = ['cookingSecond', 'ready', 'serving'].includes(stove.state);
       if (hasToppings !== view.hasToppings) {
         view.hasToppings = hasToppings;
-        view.crepe.material.map = hasToppings ? view.toppingTexture : null;
+        view.crepe.material.map = hasToppings ? view.toppingTexture : view.baseCrepeTexture;
         view.crepe.material.needsUpdate = true;
       }
       if (stove.state === 'ready') view.crepe.position.y = 1.62 + (this.reducedMotion ? 0 : Math.sin(performance.now() * 0.008) * 0.05);
-      view.crepe.material.color.setHex(stove.state === 'burnt' ? 0x39251b : hasToppings ? 0xffffff : 0xe0a75f);
+      view.crepe.material.color.setHex(stove.state === 'burnt' ? 0x39251b : 0xffffff);
       const order = snapshot.orders.find((item) => item.id === stove.orderId);
       if (order) {
         const recipeIndex = Math.max(0, C.RECIPES.findIndex((recipe) => recipe.id === order.recipeId));

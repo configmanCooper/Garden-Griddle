@@ -26,6 +26,8 @@ class Game {
     }
     this.applySettings();
     this.input = new Input(document.getElementById('game-canvas'), this.render, this);
+    this.keysDown = new Set();
+    this.lastLoopTime = performance.now();
     this.bindNetwork();
     this.bindGlobal();
     this.lastSnapshotEventCount = 0;
@@ -72,9 +74,21 @@ class Game {
       this.ui.toast('Graphics restored.');
     });
     window.addEventListener('keydown', (event) => {
+      const typing = event.target instanceof HTMLInputElement
+        || event.target instanceof HTMLTextAreaElement
+        || event.target.isContentEditable;
+      const key = String(event.key || '').toLowerCase();
+      if (!typing && ['w', 'a', 's', 'd'].includes(key)) {
+        this.keysDown.add(key);
+        event.preventDefault();
+      }
       if (event.code === 'Escape') this.clearSelection();
-      if (event.code === 'Space' && this.state.screen === 'game') this.pause();
+      if (!typing && event.code === 'Space' && this.state.screen === 'game') this.pause();
     });
+    window.addEventListener('keyup', (event) => {
+      this.keysDown.delete(String(event.key || '').toLowerCase());
+    });
+    window.addEventListener('blur', () => this.keysDown.clear());
     const appPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
     if (appPlugin && appPlugin.addListener) {
       appPlugin.addListener('appUrlOpen', ({ url }) => this.handleInviteUrl(url));
@@ -420,7 +434,22 @@ class Game {
     this.render.resetView();
   }
 
+  updateKeyboardPan(time) {
+    const dt = Math.min(0.05, Math.max(0, (time - this.lastLoopTime) / 1000));
+    this.lastLoopTime = time;
+    if (this.state.screen !== 'game' || !this.keysDown.size) return;
+    const speed = 10;
+    let dx = 0;
+    let dz = 0;
+    if (this.keysDown.has('a')) dx -= speed * dt;
+    if (this.keysDown.has('d')) dx += speed * dt;
+    if (this.keysDown.has('w')) dz -= speed * dt;
+    if (this.keysDown.has('s')) dz += speed * dt;
+    if (dx || dz) this.render.panWorld(dx, dz);
+  }
+
   loop(time) {
+    this.updateKeyboardPan(time);
     if (this.state.snapshot) this.render.update(this.state.snapshot, this.state.session);
     if (!this.graphicsLost) this.render.render(time);
     if (this.debugEnabled && time - this.lastDebugAt > 500) {
