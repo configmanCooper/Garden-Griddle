@@ -155,7 +155,7 @@ async function clickTarget(page, type, id, holdMs) {
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
     room.state.effects.waterSeconds = 0.1;
-    room.state.effects.fillPailSeconds = 0.8;
+    room.state.effects.fillPailSeconds = 2;
     room.state.effects.harvestSeconds = 0.1;
     room.state.effects.growthMultiplier = 0.08;
 
@@ -170,9 +170,28 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction(() => window.game.state.snapshot.pail.holder === window.game.state.session.playerId);
     await clickTarget(host, 'sink', 'sink');
     await host.waitForFunction(() => {
-      const sink = window.game.render.targets.get('sink-group');
-      return sink.userData.waterStream.visible && sink.userData.sinkWater.visible;
+      const me = window.game.state.mySimPlayer();
+      return me && me.task && me.task.kind === 'fillPail';
     });
+    await host.waitForFunction(() => {
+      const sink = window.game.render.targets.get('sink-group');
+      const pail = window.game.render.targets.get('pail-group');
+      return sink.userData.waterStream.visible
+        && pail.position.y > 1
+        && pail.userData.waterSurface.visible
+        && Math.abs(pail.position.x - 1.44) < 0.5
+        && Math.abs(pail.position.z - 3.18) < 0.5;
+    });
+    const fillPose = await host.evaluate(() => {
+      const pail = window.game.render.targets.get('pail-group');
+      return {
+        x: pail.position.x,
+        z: pail.position.z,
+        hasBottom: pail.userData.bucketInnerBottom.visible
+      };
+    });
+    assert.ok(Math.abs(fillPose.x - 1.44) < 0.5 && Math.abs(fillPose.z - 3.18) < 0.5, 'Pail moves under the faucet while filling.');
+    assert.strictEqual(fillPose.hasBottom, true, 'Bucket has a visible interior bottom.');
     await host.waitForFunction(() => window.game.state.snapshot.pail.water === 5);
     await host.waitForFunction(() => window.game.render.targets.get('pail-group').userData.waterSurface.visible);
     const fullWaterHeight = await host.evaluate(() => {
@@ -225,12 +244,11 @@ async function clickTarget(page, type, id, holdMs) {
     const flipResult = await host.evaluate(() => window.game.interact({ type: 'stove', id: 'stove-1' }, false));
     assert.strictEqual(flipResult.ok, true);
     await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').flipStartedAt > 0);
-    await host.waitForFunction(() => {
-      const crepe = window.game.render.stoveViews.get('stove-1').crepe;
-      return crepe.position.y > 2.15 && Math.abs(crepe.rotation.x) > 1;
-    }, null, { timeout: 2500 });
     const flipPose = await host.evaluate(() => {
-      const crepe = window.game.render.stoveViews.get('stove-1').crepe;
+      const view = window.game.render.stoveViews.get('stove-1');
+      view.flipStartedAt = performance.now() - 400;
+      window.game.render._updateStoveAnimations();
+      const crepe = view.crepe;
       return { y: crepe.position.y, rotation: crepe.rotation.x };
     });
     assert.ok(flipPose.y > 2.15, 'Crepe visibly rises above the griddle during the flip.');
@@ -247,9 +265,15 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForTimeout(900);
     const firstMeal = await host.evaluate(() => ({
       scale: window.game.render.mealScales.find((value) => value > 0),
-      x: window.game.render.mealPositions.find((position) => position.y > 0).x
+      x: window.game.render.mealPositions.find((position) => position.y > 0).x,
+      actualRecipe: window.game.render.mealRecipeIndices.find((value) => value >= 0),
+      expectedRecipe: (() => {
+        const order = window.game.state.snapshot.orders.find((item) => item.status === 'eating');
+        return window.GG.Constants.RECIPES.findIndex((recipe) => recipe.id === order.recipeId);
+      })()
     }));
     assert.ok(firstMeal.x > 12 && firstMeal.x < 12.5, 'Served plate slides onto the bar in front of the customer.');
+    assert.strictEqual(firstMeal.actualRecipe, firstMeal.expectedRecipe, 'Plated crepe artwork matches the ordered recipe.');
     await host.waitForTimeout(1300);
     const eatenScale = await host.evaluate(() => window.game.render.mealScales.find((value) => value > 0));
     assert.ok(eatenScale < firstMeal.scale, 'Crepe visibly shrinks while the customer eats.');

@@ -143,10 +143,10 @@ Each stovetop has these states:
 
 - A player selects an order ticket and then taps an empty stove.
 - The server atomically claims the order and stove, consumes one batter and the exact toppings, and starts cooking.
-- Base cook time is 4 seconds.
-- Halfway through cooking, the stove turns blue and the player must tap it to flip the crepe within 3 seconds.
+- Base cook time is 6 seconds: 3 seconds on each side.
+- Halfway through cooking, the stove turns blue and the player must tap it to flip the crepe within 4.5 seconds.
 - Crepe toppings are visually added only after a successful flip.
-- A ready crepe has a 5-second base grace period before burning.
+- A ready crepe has a 7.5-second base grace period before burning.
 - Serving a ready crepe is a 0.6-second timed action.
 - Clearing a burnt stove is a 0.8-second timed action and records waste.
 - Simultaneous claims are resolved on the server; exactly one player succeeds.

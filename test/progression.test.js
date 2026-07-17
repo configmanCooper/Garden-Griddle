@@ -50,6 +50,9 @@ function testOldCampaignMigration() {
 
 function testUpgradeEffects() {
   const base = B.effectsFor({});
+  assert.strictEqual(base.cookSeconds, 6, 'Each crepe cooks for three seconds per side.');
+  assert.strictEqual(base.flipWindowSeconds, 4.5, 'First-side burn window is 50% longer.');
+  assert.strictEqual(base.burnGraceSeconds, 7.5, 'Finished-crepe burn grace is 50% longer.');
   for (const id of C.UPGRADE_IDS) {
     const upgrades = { [id]: B.MAX_UPGRADE_TIER };
     const changed = B.effectsFor(upgrades);
