@@ -12,7 +12,7 @@ assert.strictEqual(config.appId, 'com.configmancooper.gardenandgriddle');
 assert.strictEqual(config.webDir, 'public');
 assert.strictEqual(config.server.androidScheme, 'https');
 assert.strictEqual(config.android.allowMixedContent, false);
-assert.match(read('public/shared/constants.js'), /CLIENT_BUILD = '1\.2\.4'/);
+assert.match(read('public/shared/constants.js'), /CLIENT_BUILD = '1\.2\.5'/);
 
 const variables = read('android/variables.gradle');
 assert.match(variables, /minSdkVersion = 24/);
@@ -21,8 +21,8 @@ assert.match(variables, /targetSdkVersion = 36/);
 
 const gradle = read('android/app/build.gradle');
 assert.match(gradle, /applicationId "com\.configmancooper\.gardenandgriddle"/);
-assert.match(gradle, /versionCode 10204/);
-assert.match(gradle, /versionName "1\.2\.4"/);
+assert.match(gradle, /versionCode 10205/);
+assert.match(gradle, /versionName "1\.2\.5"/);
 assert.match(gradle, /signingConfig signingConfigs\.release/);
 
 const manifest = read('android/app/src/main/AndroidManifest.xml');

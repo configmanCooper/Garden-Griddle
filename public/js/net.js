@@ -18,6 +18,7 @@ export class Net {
     this.handlers = new Map();
     this.seq = 0;
     this.socket = window.io(this.serverUrl || undefined, {
+      path: '/gg-realtime',
       transports: ['websocket', 'polling'],
       auth: { protocol: C.PROTOCOL, clientBuild: C.CLIENT_BUILD },
       reconnection: true,

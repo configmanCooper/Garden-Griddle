@@ -153,6 +153,7 @@ async function clickTarget(page, type, id, holdMs) {
     room.state.batter = 10;
     room.state.effects.cookSeconds = 0.2;
     room.state.effects.serveSeconds = 0.1;
+    room.state.effects.eatSeconds = 12;
     room.state.nextOrderAt = room.state.elapsed;
     Sim.step(room.state, 0.05);
     gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
@@ -175,6 +176,16 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'ready');
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stats.served >= 1);
+    await host.waitForFunction(() => window.game.render.visibleMealCount >= 1);
+    await host.waitForTimeout(900);
+    const firstMeal = await host.evaluate(() => ({
+      scale: window.game.render.mealScales.find((value) => value > 0),
+      x: window.game.render.mealPositions.find((position) => position.y > 0).x
+    }));
+    assert.ok(firstMeal.x > 12 && firstMeal.x < 12.5, 'Served plate slides onto the bar in front of the customer.');
+    await host.waitForTimeout(1300);
+    const eatenScale = await host.evaluate(() => window.game.render.mealScales.find((value) => value > 0));
+    assert.ok(eatenScale < firstMeal.scale, 'Crepe visibly shrinks while the customer eats.');
     await host.evaluate(() => {
       const canvas = document.getElementById('game-canvas');
       canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true }));

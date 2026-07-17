@@ -31,6 +31,7 @@ function emitAck(socket, event, payload, timeout) {
 
 function client(url, auth, extraHeaders) {
   return connect(url, {
+    path: '/gg-realtime',
     transports: ['websocket'],
     forceNew: true,
     reconnection: false,

@@ -28,6 +28,7 @@ function createGameServer(options) {
     callback(new Error('Origin not allowed.'));
   };
   const io = new Server(server, {
+    path: '/gg-realtime',
     cors: { origin: allowOrigin, methods: ['GET', 'POST'] },
     maxHttpBufferSize: 32768,
     perMessageDeflate: { threshold: 1024 }

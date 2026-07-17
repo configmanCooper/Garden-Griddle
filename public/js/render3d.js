@@ -623,6 +623,30 @@ export class Render3D {
     }
     this.customerMeshes = { bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh };
     this.scene.add(bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh);
+
+    this.mealPlateMesh = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.48, 0.52, 0.06, 24),
+      material(0xf7f2e6),
+      8
+    );
+    this.mealCrepeMesh = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.37, 0.39, 0.055, 24),
+      material(0xe0a75f),
+      8
+    );
+    this.mealToppingMesh = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(0.075, 9, 6),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true }),
+      24
+    );
+    for (const instanced of [this.mealPlateMesh, this.mealCrepeMesh, this.mealToppingMesh]) {
+      instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      instanced.frustumCulled = false;
+    }
+    this.scene.add(this.mealPlateMesh, this.mealCrepeMesh, this.mealToppingMesh);
+    this.mealScales = Array(8).fill(0);
+    this.mealPositions = Array.from({ length: 8 }, () => new THREE.Vector3(0, -100, 0));
+    this.visibleMealCount = 0;
   }
 
   _buildPlayers() {
@@ -929,6 +953,7 @@ export class Render3D {
     this.patienceRings.instanceMatrix.needsUpdate = true;
     if (this.patienceRings.instanceColor) this.patienceRings.instanceColor.needsUpdate = true;
     this._updateCustomerInstances(activeOrders);
+    this._updateMealInstances(activeOrders, snapshot);
 
     for (const avatar of this.playerViews.values()) avatar.visible = false;
     const playerEntries = Object.values(snapshot.players).sort((a, b) => a.seat - b.seat);
@@ -1018,6 +1043,76 @@ export class Render3D {
       }
     }
     for (const instanced of [bodyMesh, headMesh, hairMesh, armMesh, legMesh, shinMesh, eyeMesh]) instanced.instanceMatrix.needsUpdate = true;
+  }
+
+  _updateMealInstances(activeOrders, snapshot) {
+        const toppingColors = {
+          lemon: 0xffdc28,
+          sugar: 0xfff4d2,
+          strawberry: 0xdf4055,
+          blackberry: 0x642c88,
+          banana: 0xefc94c
+        };
+        this.visibleMealCount = 0;
+        for (let index = 0; index < 8; index += 1) {
+          const order = activeOrders[index];
+          if (!order || order.status !== 'eating') {
+            this._setMealMatrix(this.mealPlateMesh, index, new THREE.Vector3(0, -100, 0), 0);
+            this._setMealMatrix(this.mealCrepeMesh, index, new THREE.Vector3(0, -100, 0), 0);
+            this.mealScales[index] = 0;
+            this.mealPositions[index].set(0, -100, 0);
+            for (let topping = 0; topping < 3; topping += 1) {
+              this._setMealMatrix(this.mealToppingMesh, index * 3 + topping, new THREE.Vector3(0, -100, 0), 0);
+            }
+            continue;
+          }
+          const customer = this.customerViews[index];
+          const transferProgress = THREE.MathUtils.clamp((snapshot.elapsed - order.servedAt) / 0.75, 0, 1);
+          const easedTransfer = transferProgress * transferProgress * (3 - 2 * transferProgress);
+          const eatDuration = Math.max(0.01, order.payAt - order.servedAt);
+          const eatProgress = THREE.MathUtils.clamp((snapshot.elapsed - order.servedAt - 0.6) / Math.max(0.01, eatDuration - 0.6), 0, 1);
+          const bitePulse = this.reducedMotion ? 0 : Math.sin(eatProgress * Math.PI * 10) * 0.025;
+          const mealScale = Math.max(0.14, 1 - eatProgress * 0.86 + bitePulse);
+          const mealPosition = new THREE.Vector3(
+            THREE.MathUtils.lerp(10.85, 12.28, easedTransfer),
+            1.56 + (this.reducedMotion ? 0 : Math.sin(transferProgress * Math.PI) * 0.08),
+            customer.position.z
+          );
+          this._setMealMatrix(this.mealPlateMesh, index, mealPosition, 1);
+          this._setMealMatrix(this.mealCrepeMesh, index, mealPosition.clone().add(new THREE.Vector3(0, 0.075, 0)), mealScale);
+          this.mealScales[index] = mealScale;
+          this.mealPositions[index].copy(mealPosition);
+          this.visibleMealCount += 1;
+          const recipe = C.RECIPE_BY_ID[order.recipeId];
+          const toppings = recipe ? Object.keys(recipe.toppings).slice(0, 3) : [];
+          for (let topping = 0; topping < 3; topping += 1) {
+            const key = toppings[topping];
+            if (!key) {
+              this._setMealMatrix(this.mealToppingMesh, index * 3 + topping, new THREE.Vector3(0, -100, 0), 0);
+              continue;
+            }
+            const angle = topping / Math.max(1, toppings.length) * Math.PI * 2;
+            const toppingPosition = mealPosition.clone().add(new THREE.Vector3(
+              Math.cos(angle) * 0.18 * mealScale,
+              0.13,
+              Math.sin(angle) * 0.18 * mealScale
+            ));
+            this._setMealMatrix(this.mealToppingMesh, index * 3 + topping, toppingPosition, mealScale);
+            this.mealToppingMesh.setColorAt(index * 3 + topping, new THREE.Color(toppingColors[key] || 0xffffff));
+          }
+        }
+        this.mealPlateMesh.instanceMatrix.needsUpdate = true;
+        this.mealCrepeMesh.instanceMatrix.needsUpdate = true;
+        this.mealToppingMesh.instanceMatrix.needsUpdate = true;
+        if (this.mealToppingMesh.instanceColor) this.mealToppingMesh.instanceColor.needsUpdate = true;
+      }
+
+  _setMealMatrix(instancedMesh, index, position, scale) {
+        instancedMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+          position,
+          new THREE.Quaternion(),
+          new THREE.Vector3(scale, scale, scale)
+        ));
   }
 
   _updatePlayerInstances() {
