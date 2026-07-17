@@ -120,6 +120,7 @@ class Game {
     });
     this.net.on(C.EVENTS.SESSION, (session) => {
       this.state.session = session;
+      if (this.state.rejoining) this.state.viewingRoomDuringGame = false;
       this.pendingInvite = null;
       this.net.setSequence(session.lastSeq);
       Save.storeSession(session.code, session.sessionToken);
@@ -136,11 +137,13 @@ class Game {
       this.syncCampaign(room.campaign);
       this.ui.updateRoom(room, this.state.session);
       if (room.status === 'lobby' || room.status === 'results') {
+        this.state.viewingRoomDuringGame = false;
         if (this.state.screen !== 'results') this.ui.show('room');
       }
     });
     this.net.on(C.EVENTS.DAY_STARTED, () => {
       this.state.selectedOrderId = null;
+      this.state.viewingRoomDuringGame = false;
       this.ui.show('game');
       this.ui.toast('The restaurant is open!');
     });
@@ -151,6 +154,7 @@ class Game {
       }
       this.state.snapshot = snapshot;
       this.state.rejoining = false;
+      if (snapshot.status === 'playing' && !this.state.viewingRoomDuringGame) this.ui.show('game');
       this.ui.updateSnapshot(snapshot, this.state);
       this.playNewEvents(snapshot);
     });
@@ -413,6 +417,18 @@ class Game {
     if (!this.state.room) return;
     const result = await this.net.pause();
     if (!result.ok) this.ui.toast(result.reason, true);
+  }
+
+  backToRoom() {
+    this.state.viewingRoomDuringGame = true;
+    this.ui.show('room');
+    if (this.state.room) this.ui.updateRoom(this.state.room, this.state.session);
+  }
+
+  returnToGame() {
+    this.state.viewingRoomDuringGame = false;
+    this.ui.show('game');
+    this.net.requestSnapshot();
   }
 
   ping(kind) {

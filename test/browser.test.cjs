@@ -312,6 +312,16 @@ async function clickTarget(page, type, id, holdMs) {
     const rejectionToast = await losingPage.evaluate(() => window._lastToast);
     assert.strictEqual(rejectionToast.reject, true, 'Losing client shows non-blocking rejection feedback.');
 
+    await guest.evaluate(() => window.game.pause());
+    await host.waitForFunction(() => window.game.state.paused);
+    await host.click('#pause-back-room');
+    await host.waitForSelector('#screen-room.active');
+    assert.strictEqual(await host.textContent('#start-day'), 'Return to Active Day');
+    await host.click('#start-day');
+    await host.waitForSelector('#screen-game.active');
+    await host.click('#pause-back-room');
+    await host.waitForSelector('#screen-room.active');
+
     await host.evaluate(() => window.game.net.socket.disconnect());
     await host.waitForFunction(() => !window.game.state.connected);
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -321,6 +331,9 @@ async function clickTarget(page, type, id, holdMs) {
     assert.strictEqual(room.state.pail.holder, holderAfterDisconnect, 'Offline action is not buffered into the room.');
     await host.evaluate(() => window.game.net.socket.connect());
     await host.waitForFunction(() => window.game.state.connected && !window.game.state.rejoining);
+    await host.waitForSelector('#screen-game.active');
+    await host.evaluate(() => window.game.pause());
+    await host.waitForFunction(() => !window.game.state.paused);
     const resumedAction = await host.evaluate(() => window.game.sendAction(window.GG.Constants.ACTIONS.PICKUP_PAIL, {}));
     assert.notStrictEqual(resumedAction.code, 'stale', 'Reconnect restores the server action sequence.');
 

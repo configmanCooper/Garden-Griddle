@@ -184,7 +184,7 @@ Levels are generated from authored formulas plus milestone overrides, not 50 dup
 
 Primary difficulty dimensions:
 
-- order intervals are recalculated against the shorter post-prep service window so actual arrivals remain about 25% below the original curve
+- customer arrivals are reduced to roughly half of the 1.3.2 schedule across all 100 days
 - patience: 20% above the original curve, from approximately 48 seconds early to 21.6 seconds at maximum difficulty
 - prep duration: 15 seconds to 8 seconds
 - active recipe variety: 3 to 10

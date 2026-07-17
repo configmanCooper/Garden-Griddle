@@ -26,7 +26,10 @@ export class UI {
     byId('join-room').onclick = () => this.game.joinRoom();
     byId('room-code-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') this.game.joinRoom(); });
     byId('save-server').onclick = () => this.game.saveServer();
-    byId('start-day').onclick = () => this.game.startDay(this.selectedLevel);
+    byId('start-day').onclick = () => {
+      if (this.game.state.room && this.game.state.room.status === 'playing') this.game.returnToGame();
+      else this.game.startDay(this.selectedLevel);
+    };
     byId('restaurant-name').oninput = (event) => {
       clearTimeout(this.restaurantNameTimer);
       this.restaurantNameTimer = setTimeout(() => this.game.setRestaurantName(event.target.value), 450);
@@ -52,6 +55,7 @@ export class UI {
     byId('results-shop').onclick = () => this.showShop();
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
+    byId('pause-back-room').onclick = () => this.game.backToRoom();
     byId('held-item').onclick = () => this.game.dropHeldItem();
     byId('selected-crop').onclick = () => this.chooseCrop(null);
     byId('camera-left').onclick = () => this.game.panCamera(-4, 0);
@@ -129,9 +133,13 @@ export class UI {
     }
     const isHost = room.hostId === session.playerId;
     this.selectedLevel = Math.min(this.selectedLevel || room.selectedLevel || 1, room.campaign.unlockedLevel);
-    byId('start-day').disabled = !isHost || !['lobby', 'results'].includes(room.status);
+    const activeDay = room.status === 'playing';
+    byId('start-day').disabled = activeDay ? false : !isHost || !['lobby', 'results'].includes(room.status);
+    byId('start-day').textContent = activeDay ? 'Return to Active Day' : 'Open for the Day';
     restaurantInput.disabled = !['lobby', 'results'].includes(room.status);
-    byId('room-hint').textContent = isHost ? 'Choose any unlocked day and start when ready.' : 'The host chooses when the restaurant opens.';
+    byId('room-hint').textContent = activeDay
+      ? 'The current day is still active. Return whenever you are ready.'
+      : isHost ? 'Choose any unlocked day and start when ready.' : 'The host chooses when the restaurant opens.';
     this.renderDayPicker(room.campaign);
     this.updateSelectedLevel();
     this.renderShop(room.campaign);
@@ -466,7 +474,7 @@ export class UI {
 
   setPaused(paused, vote) {
     byId('pause-banner').classList.toggle('hidden', !paused && !vote);
-    byId('pause-banner').textContent = paused ? 'Day paused' : 'Partner requested a pause - tap pause to approve';
+    byId('pause-banner-text').textContent = paused ? 'Day paused' : 'Pause requested';
   }
 
   toast(message, reject) {

@@ -9,6 +9,7 @@ export const State = {
   connected: false,
   rejoining: false,
   paused: false,
+  viewingRoomDuringGame: false,
   lastActionResult: null,
 
   me() {

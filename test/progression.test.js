@@ -107,19 +107,22 @@ function testLevelCurve() {
   for (let level = 1; level <= C.MAX_LEVEL; level += 1) {
     const t = (level - 1) / (C.MAX_LEVEL - 1);
     const oldPrep = 15 + (8 - 15) * t;
-    let oldInterval = 12 + (4.5 - 12) * t;
-    if ([10, 20, 30, 40, 50, 60, 70, 80, 90, 100].includes(level)) oldInterval *= 0.92;
-    const oldCount = Math.ceil((B.DAY_SECONDS - oldPrep - B.NO_SPAWN_FINAL_SECONDS) / oldInterval);
+    let previousInterval = 12 + (4.5 - 12) * t;
+    if ([10, 20, 30, 40, 50, 60, 70, 80, 90, 100].includes(level)) previousInterval *= 0.92;
+    const oldService = B.DAY_SECONDS - oldPrep - B.NO_SPAWN_FINAL_SECONDS;
+    const standardService = B.DAY_SECONDS - B.PREP_SECONDS - B.NO_SPAWN_FINAL_SECONDS;
+    previousInterval *= (standardService / oldService) / 0.75;
+    let previousPrep = B.PREP_SECONDS;
+    if (level === 1) {
+      const normalCount = Math.ceil(standardService / previousInterval);
+      previousPrep = 60;
+      previousInterval = (B.DAY_SECONDS - previousPrep - B.NO_SPAWN_FINAL_SECONDS) / Math.max(0.5, normalCount - 1.5);
+    }
+    const previousCount = Math.ceil((B.DAY_SECONDS - previousPrep - B.NO_SPAWN_FINAL_SECONDS) / previousInterval);
     const current = B.compileLevel(level, 2);
     const newCount = Math.ceil((B.DAY_SECONDS - current.prepSeconds - B.NO_SPAWN_FINAL_SECONDS) / current.orderInterval);
-    const reduction = 1 - newCount / oldCount;
-    if (level > 1) assert.ok(reduction >= 0.18 && reduction <= 0.32, 'Level ' + level + ' customer reduction stays near 25%.');
+    assert.ok(Math.abs(newCount - Math.ceil(previousCount / 2)) <= 1, 'Level ' + level + ' has roughly half the prior customers.');
   }
-  const standardDay1Interval = (12 * ((B.DAY_SECONDS - B.PREP_SECONDS - B.NO_SPAWN_FINAL_SECONDS) / (B.DAY_SECONDS - 15 - B.NO_SPAWN_FINAL_SECONDS))) / 0.75;
-  const previousDay1Count = Math.ceil((B.DAY_SECONDS - B.PREP_SECONDS - B.NO_SPAWN_FINAL_SECONDS) / standardDay1Interval);
-  const day1 = B.compileLevel(1, 2);
-  const day1Count = Math.ceil((B.DAY_SECONDS - day1.prepSeconds - B.NO_SPAWN_FINAL_SECONDS) / day1.orderInterval);
-  assert.strictEqual(day1Count, previousDay1Count - 1, 'Day 1 has exactly one fewer customer than the prior schedule.');
   assert.ok(B.compileLevel(100, 2).patience < B.compileLevel(1, 2).patience);
   assert.strictEqual(B.compileLevel(1, 2).patience, 48, 'Early customer patience is increased by 20%.');
   assert.strictEqual(B.compileLevel(C.MAX_LEVEL, 2).patience, 21.6, 'Maximum-difficulty patience is increased by 20%.');

@@ -113,8 +113,11 @@
     if (level === 1) {
       const normalCount = Math.ceil((DAY_SECONDS - PREP_SECONDS - NO_SPAWN_FINAL_SECONDS) / orderInterval);
       prepSeconds = 60;
-      const targetCount = Math.max(1, normalCount - 1);
+      const previousTargetCount = Math.max(1, normalCount - 1);
+      const targetCount = Math.max(1, Math.ceil(previousTargetCount / 2));
       orderInterval = (DAY_SECONDS - prepSeconds - NO_SPAWN_FINAL_SECONDS) / Math.max(0.5, targetCount - 0.5);
+    } else {
+      orderInterval *= 2;
     }
     return {
       number: level,
