@@ -22,7 +22,7 @@
   const PAIL_CAPACITY = 5;
   const STAR_THRESHOLDS = [0.5, 0.7, 0.9];
   const SOLO_ARRIVAL_RATE = 0.5;
-  const HUMAN_ACTIONS_PER_SECOND_PER_PLAYER = 1.5;
+  const HUMAN_ACTIONS_PER_SECOND_PER_PLAYER = 1.6;
   const HUMAN_APM_GUARD = 0.8;
 
   const BASE_TIMINGS = {
@@ -33,6 +33,7 @@
     milk: 0.5,
     mix: 3,
     cook: 4,
+    flipWindow: 3,
     burnGrace: 5,
     serve: 0.6,
     clear: 0.8,
@@ -153,6 +154,7 @@
       mixSeconds: Math.max(0.7, BASE_TIMINGS.mix * (1 - swiftWhisk * 0.12)),
       batterYield: BATTER_YIELD + tier(upgrades, 'biggerBowl') * 2,
       cookSeconds: Math.max(1.5, BASE_TIMINGS.cook * (1 - hotGriddles * 0.07)),
+      flipWindowSeconds: BASE_TIMINGS.flipWindow,
       burnGraceSeconds: BASE_TIMINGS.burnGrace + tier(upgrades, 'forgivingHeat') * 1.5,
       patienceMultiplier: 1 + tier(upgrades, 'cozyCafe') * 0.05,
       serveSeconds: Math.max(0.2, BASE_TIMINGS.serve * (1 - fastService * 0.1)),
@@ -200,7 +202,7 @@
     const milkNeeded = batches * BATTER_COST.milk;
     const milkCollections = milkNeeded / (1 + fx.milkBonusChance);
     const refillsNeeded = Math.ceil(harvestsNeeded / PAIL_CAPACITY);
-    const estimatedActions = harvestsNeeded * 3 + refillsNeeded + maxOrders * 2 + batches + milkCollections + 2;
+    const estimatedActions = harvestsNeeded * 3 + refillsNeeded + maxOrders * 3 + batches + milkCollections + 2;
     const humanActionCapacity = level.daySeconds * level.playerCount * HUMAN_ACTIONS_PER_SECOND_PER_PLAYER * HUMAN_APM_GUARD;
     const personSeconds = harvestsNeeded * (fx.plantSeconds + fx.waterSeconds + fx.harvestSeconds)
       + maxOrders * fx.serveSeconds

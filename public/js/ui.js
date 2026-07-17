@@ -36,6 +36,11 @@ export class UI {
     byId('results-room').onclick = () => this.show('room');
     byId('pause-game').onclick = () => this.game.pause();
     byId('held-item').onclick = () => this.game.dropHeldItem();
+    byId('selected-crop').onclick = () => this.chooseCrop(null);
+    byId('camera-left').onclick = () => this.game.panCamera(-4, 0);
+    byId('camera-right').onclick = () => this.game.panCamera(4, 0);
+    byId('camera-up').onclick = () => this.game.panCamera(0, -3);
+    byId('camera-down').onclick = () => this.game.panCamera(0, 3);
     byId('camera-zoom-out').onclick = () => this.game.zoomCamera(0.78);
     byId('camera-fit').onclick = () => this.game.resetCamera();
     byId('camera-zoom-in').onclick = () => this.game.zoomCamera(1.28);
@@ -189,7 +194,10 @@ export class UI {
       button.disabled = order.status !== 'waiting';
       button.dataset.orderId = order.id;
       button._gg.name.textContent = recipe.name;
-      button._gg.status.textContent = order.status === 'waiting' ? 'Waiting' : order.status + (order.stoveId ? ' - ' + order.stoveId.replace('-', ' ') : '');
+      const stove = order.stoveId && snapshot.stoves.find((item) => item.id === order.stoveId);
+      button._gg.status.textContent = stove && stove.state === 'needsFlip'
+        ? 'FLIP NOW - ' + stove.id.replace('-', ' ')
+        : order.status === 'waiting' ? 'Waiting' : order.status + (order.stoveId ? ' - ' + order.stoveId.replace('-', ' ') : '');
       if (button._gg.recipeId !== recipe.id) {
         button._gg.icons.replaceChildren();
         for (const key of Object.keys(recipe.toppings)) {
@@ -284,6 +292,11 @@ export class UI {
           text: 'Tap a waiting order ticket at the top, then tap any empty stovetop. Exact toppings are used automatically.'
         },
         {
+          done: tutorial.crepeFlipped,
+          title: 'Flip the crepe halfway',
+          text: 'When the stove ring turns blue, tap the stovetop before the flip timer runs out. Toppings appear after the flip.'
+        },
+        {
           done: tutorial.served,
           title: 'Serve the crepe',
           text: 'When the stove ring turns green, tap it before the crepe burns. The customer will eat and pay.'
@@ -324,7 +337,9 @@ export class UI {
       button.appendChild(small);
       button.onclick = () => {
         byId('crop-modal').classList.add('hidden');
-        this.game.plant(this.pendingPlotId, id);
+        const plotId = this.pendingPlotId;
+        this.pendingPlotId = null;
+        this.game.selectCrop(id, plotId);
       };
       holder.appendChild(button);
     }
@@ -333,6 +348,12 @@ export class UI {
   chooseCrop(plotId) {
     this.pendingPlotId = plotId;
     byId('crop-modal').classList.remove('hidden');
+  }
+
+  updateSelectedCrop(cropId) {
+    const crop = cropId && C.CROPS[cropId];
+    byId('selected-crop').textContent = crop ? 'Plant: ' + crop.name : 'Plant: choose crop';
+    byId('selected-crop').style.borderColor = crop ? crop.color : '#fff';
   }
 
   showShop() {

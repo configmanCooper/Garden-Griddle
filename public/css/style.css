@@ -111,9 +111,11 @@ button { cursor: pointer; }
 .tutorial-task p { margin: 2px 0 0; font-size: 11px; line-height: 1.35; }
 .tutorial-panel.collapsed { width: 250px; }
 .tutorial-panel.collapsed .tutorial-list { display: none; }
-.camera-controls { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: calc(82px + env(safe-area-inset-bottom)); display: flex; gap: 6px; pointer-events: auto; }
+.selected-crop { min-height: var(--hit); max-width: 180px; padding: 0 12px; border: 2px solid #d9bf8a; border-radius: 12px; background: white; color: var(--ink); font-weight: 900; pointer-events: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.camera-controls { position: absolute; right: max(8px, env(safe-area-inset-right)); bottom: calc(82px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 5px; pointer-events: auto; }
+.camera-row { display: flex; justify-content: flex-end; gap: 5px; }
 .camera-controls button { min-width: var(--hit); height: var(--hit); padding: 0 11px; border: 2px solid rgba(255,255,255,.85); border-radius: 13px; background: rgba(255,248,232,.94); color: var(--ink); box-shadow: 0 4px 12px rgba(49,27,15,.24); font-weight: 900; }
-#game-bottom { position: absolute; left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); min-height: 58px; border-radius: 18px; padding: 8px 12px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 12px; pointer-events: none; }
+#game-bottom { position: absolute; left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); min-height: 58px; border-radius: 18px; padding: 8px 12px; display: grid; grid-template-columns: auto auto auto 1fr; align-items: center; gap: 10px; pointer-events: none; }
 .ping-row { display: flex; gap: 5px; pointer-events: auto; }
 .ping-row button { min-height: var(--hit); padding: 0 10px; border: 0; border-radius: 11px; background: #e9d8b7; color: var(--ink); font-size: 11px; font-weight: 800; }
 .held-item { min-height: var(--hit); padding: 0 16px; border: 2px solid #cab27f; border-radius: 12px; background: white; font-weight: 800; }

@@ -24,6 +24,14 @@ function complete(state, seconds) {
   Sim.advance(state, seconds, 0.05);
 }
 
+function flipAndFinishAll(state) {
+  complete(state, state.effects.cookSeconds / 2 + 0.01);
+  for (const stove of state.stoves.filter((item) => item.state === 'needsFlip')) {
+    truthy(Sim.applyAction(state, 'p1', C.ACTIONS.FLIP_CREPE, { stoveId: stove.id }).ok, 'Half-cooked crepe can be flipped.');
+  }
+  complete(state, state.effects.cookSeconds / 2 + 0.01);
+}
+
 function testInitialState() {
   const state = fresh();
   equal(state.plots.length, 12, 'The garden has twelve plots.');
@@ -137,7 +145,11 @@ function testBatterAndStoves() {
   }
   equal(state.tutorial.crepeStarted, true, 'Tutorial records the first cooking order.');
   equal(state.stoves.filter((stove) => stove.state === 'cooking').length, 3, 'All three stoves cook at once.');
-  complete(state, state.effects.cookSeconds + 0.01);
+  complete(state, state.effects.cookSeconds / 2 + 0.01);
+  equal(state.stoves.filter((stove) => stove.state === 'needsFlip').length, 3, 'All stoves request a halfway flip.');
+  for (const stove of state.stoves) truthy(Sim.applyAction(state, 'p1', C.ACTIONS.FLIP_CREPE, { stoveId: stove.id }).ok, 'Each crepe can be flipped.');
+  equal(state.tutorial.crepeFlipped, true, 'Tutorial records the first crepe flip.');
+  complete(state, state.effects.cookSeconds / 2 + 0.01);
   equal(state.stoves.filter((stove) => stove.state === 'ready').length, 3, 'All stoves become ready.');
   equal(new Set(state.events.map((event) => event.id)).size, state.events.length, 'Simultaneous events keep unique IDs.');
   truthy(Sim.applyAction(state, 'p1', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).ok, 'Ready crepe can be served.');
@@ -156,7 +168,7 @@ function testBurnAndClear() {
   complete(state, 0.1);
   const order = state.orders[0];
   Sim.applyAction(state, 'p1', C.ACTIONS.START_CREPE, { stoveId: 'stove-1', orderId: order.id });
-  complete(state, state.effects.cookSeconds + state.effects.burnGraceSeconds + 0.1);
+  complete(state, state.effects.cookSeconds / 2 + state.effects.flipWindowSeconds + 0.1);
   equal(state.stoves[0].state, 'burnt', 'Ready crepe eventually burns.');
   equal(state.stats.burnt, 1, 'Burn is counted.');
   truthy(Sim.applyAction(state, 'p2', C.ACTIONS.CLEAR_BURNT, { stoveId: 'stove-1' }).ok, 'Burnt stove can be cleared.');
@@ -171,7 +183,7 @@ function testCommittedServeBeatsPatience() {
   complete(state, 0.1);
   const order = state.orders[0];
   Sim.applyAction(state, 'p1', C.ACTIONS.START_CREPE, { stoveId: 'stove-1', orderId: order.id });
-  complete(state, state.effects.cookSeconds + 0.01);
+  flipAndFinishAll(state);
   order.expiresAt = state.elapsed + state.effects.serveSeconds / 2;
   truthy(Sim.applyAction(state, 'p2', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).ok, 'Serve can begin before patience expires.');
   complete(state, state.effects.serveSeconds + 0.01);
@@ -186,7 +198,7 @@ function testCommittedServeBeatsBurnTimer() {
   complete(state, 0.1);
   const order = state.orders[0];
   Sim.applyAction(state, 'p1', C.ACTIONS.START_CREPE, { stoveId: 'stove-1', orderId: order.id });
-  complete(state, state.effects.cookSeconds + 0.01);
+  flipAndFinishAll(state);
   state.stoves[0].burnAt = state.elapsed + state.effects.serveSeconds / 2;
   truthy(Sim.applyAction(state, 'p2', C.ACTIONS.SERVE_CREPE, { stoveId: 'stove-1' }).ok, 'Serve commits before the burn deadline.');
   complete(state, state.effects.serveSeconds + 0.01);

@@ -16,6 +16,7 @@ class Game {
     this.net = new Net();
     this.ui = new UI(this);
     this.ui.setTitleValues(this.save, this.net.serverUrl);
+    this.ui.updateSelectedCrop(this.state.selectedCropId);
     Audio.configure(this.save.settings);
     try {
       this.render = new Render3D(document.getElementById('game-canvas'));
@@ -177,6 +178,11 @@ class Game {
       this.seenEventIds.add(event.id);
       if (this.seenEventIds.size > 200) this.seenEventIds.delete(this.seenEventIds.values().next().value);
       if (event.type === 'cropReady' || event.type === 'crepeReady') Audio.sfx.ready();
+      else if (event.type === 'crepeNeedsFlip') {
+        Audio.sfx.ready();
+        this.ui.toast('Flip ' + String(event.stoveId || 'the stove').replace('-', ' ') + ' now!');
+      }
+      else if (event.type === 'crepeFlipped') Audio.sfx.flip();
       else if (event.type === 'harvested') Audio.sfx.harvest();
       else if (event.type === 'milked') Audio.sfx.milk();
       else if (event.type === 'served') Audio.sfx.serve();
@@ -311,6 +317,7 @@ class Game {
       if (!plot) return;
       if (plot.state === 'empty') {
         if (this.state.snapshot.pail.holder === this.state.session.playerId) return this.ui.toast('Put down the pail before planting.', true);
+        if (this.state.selectedCropId) return this.plant(plot.id, this.state.selectedCropId);
         return this.ui.chooseCrop(plot.id);
       }
       if (plot.state === 'dry') {
@@ -339,6 +346,7 @@ class Game {
         this.state.selectedOrderId = null;
         return this.sendAction(C.ACTIONS.START_CREPE, { stoveId: stove.id, orderId }, Audio.sfx.cook);
       }
+      if (stove.state === 'needsFlip') return this.sendAction(C.ACTIONS.FLIP_CREPE, { stoveId: stove.id });
       if (stove.state === 'ready') return this.sendAction(C.ACTIONS.SERVE_CREPE, { stoveId: stove.id }, Audio.sfx.serve);
       if (stove.state === 'burnt') return this.sendAction(C.ACTIONS.CLEAR_BURNT, { stoveId: stove.id }, Audio.sfx.tap);
       return this.ui.toast('That crepe is cooking.');
@@ -348,6 +356,12 @@ class Game {
 
   plant(plotId, crop) {
     this.sendAction(C.ACTIONS.PLANT, { plotId, crop }, Audio.sfx.plant);
+  }
+
+  selectCrop(cropId, plotId) {
+    this.state.selectedCropId = cropId;
+    this.ui.updateSelectedCrop(cropId);
+    if (plotId) this.plant(plotId, cropId);
   }
 
   selectOrder(orderId) {
@@ -392,6 +406,10 @@ class Game {
 
   zoomCamera(amount) {
     this.render.zoomBy(amount);
+  }
+
+  panCamera(dx, dz) {
+    this.render.panWorld(dx, dz);
   }
 
   resetCamera() {

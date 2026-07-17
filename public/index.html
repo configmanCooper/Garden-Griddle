@@ -95,9 +95,17 @@
         <div id="tutorial-list" class="tutorial-list"></div>
       </aside>
       <div class="camera-controls" aria-label="Camera controls">
-        <button id="camera-zoom-out" aria-label="Zoom farther out">−</button>
-        <button id="camera-fit" aria-label="Reset camera view">Fit</button>
-        <button id="camera-zoom-in" aria-label="Zoom in">+</button>
+        <div class="camera-row">
+          <button id="camera-left" aria-label="Pan left">←</button>
+          <button id="camera-up" aria-label="Pan up">↑</button>
+          <button id="camera-down" aria-label="Pan down">↓</button>
+          <button id="camera-right" aria-label="Pan right">→</button>
+        </div>
+        <div class="camera-row">
+          <button id="camera-zoom-out" aria-label="Zoom farther out">−</button>
+          <button id="camera-fit" aria-label="Reset camera view">Fit</button>
+          <button id="camera-zoom-in" aria-label="Zoom in">+</button>
+        </div>
       </div>
       <div id="game-bottom">
         <div class="ping-row">
@@ -107,6 +115,7 @@
           <button data-ping="rush">Rush!</button>
         </div>
         <button id="held-item" class="held-item">Hands free</button>
+        <button id="selected-crop" class="selected-crop">Plant: choose crop</button>
         <div id="selection-status" class="selection-status">Tap something to help.</div>
       </div>
       <div id="action-progress" class="action-progress hidden"><span></span></div>
@@ -166,6 +175,7 @@
         <li>Harvest ripe crops; ingredients go straight to the shared fridge.</li>
         <li>Tap the cow for milk and the bowl to mix ten-crepe batter.</li>
         <li>Select an order ticket, then tap an empty stovetop.</li>
+        <li>When the stove turns blue halfway through, tap it to flip the crepe. Toppings appear after the flip.</li>
         <li>Tap a green ready stove to serve before the customer leaves.</li>
       </ol>
       <p>Both players can do every job. Use quick pings to divide the work.</p>

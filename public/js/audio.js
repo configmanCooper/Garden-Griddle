@@ -39,6 +39,7 @@ export const sfx = {
   harvest: () => tone(620, 0.16, 'triangle', 0.08, 920),
   milk: () => tone(330, 0.16, 'sine', 0.08, 440),
   cook: () => tone(440, 0.12, 'square', 0.05, 600),
+  flip: () => tone(520, 0.16, 'triangle', 0.08, 820),
   ready: () => { tone(660, 0.12, 'sine', 0.08, 880); setTimeout(() => tone(880, 0.16, 'sine', 0.07, 1100), 90); },
   serve: () => tone(740, 0.2, 'triangle', 0.09, 1180),
   deny: () => tone(190, 0.14, 'sawtooth', 0.05, 120),

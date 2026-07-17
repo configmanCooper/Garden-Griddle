@@ -139,11 +139,13 @@ Recipe complexity unlocks gradually:
 
 Each stovetop has these states:
 
-`empty → cooking → ready → burnt → cleaned/empty`
+`empty → cooking first side → flip prompt → cooking second side → ready → burnt → cleaned/empty`
 
 - A player selects an order ticket and then taps an empty stove.
 - The server atomically claims the order and stove, consumes one batter and the exact toppings, and starts cooking.
 - Base cook time is 4 seconds.
+- Halfway through cooking, the stove turns blue and the player must tap it to flip the crepe within 3 seconds.
+- Crepe toppings are visually added only after a successful flip.
 - A ready crepe has a 5-second base grace period before burning.
 - Serving a ready crepe is a 0.6-second timed action.
 - Clearing a burnt stove is a 0.8-second timed action and records waste.
@@ -339,6 +341,8 @@ The game uses direct object tapping rather than free-roam joystick movement. Thi
 
 Characters automatically walk a short path to the selected station, making actions feel physical without forcing precise phone movement controls.
 
+The current crop selection is always shown above the bottom HUD; tapping another empty plot plants that visible selection. Drag panning supports a wide world range, with on-screen arrow buttons for phones where menus reduce the available gesture area.
+
 Desktop adds mouse hover outlines and keyboard shortcuts while preserving identical rules.
 
 Camera pan/zoom, hover state, and current order/seed selection are always client-local presentation state. They are never written to or broadcast in the authoritative simulation snapshot.
@@ -383,6 +387,8 @@ The renderer uses an orthographic camera at a fixed 30–35 degree elevation and
 - Rounded low-poly procedural geometry.
 - Cream, caramel, terracotta, leafy green, berry red, lemon yellow, and blackberry purple palette.
 - Canvas-generated in-world topping atlas and effect sprites. Order tickets, ingredient silhouettes, patience indicators, and all critical text remain crisp DOM/CSS overlays outside the capped-resolution WebGL canvas.
+- Batter visibly enters the bowl as flour, sugar, and milk before a countertop blender mixes it.
+- Crepes begin plain, animate through a halfway flip, and receive their topping atlas only on the second side.
 - Pattern-coded aprons and ingredients for colorblind readability.
 - Fake radial contact-shadow quads; no real-time shadow maps.
 - Ambient plus one warm directional light.

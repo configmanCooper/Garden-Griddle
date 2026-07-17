@@ -4,6 +4,7 @@ export const State = {
   room: null,
   snapshot: null,
   selectedOrderId: null,
+  selectedCropId: null,
   selectedPlotId: null,
   connected: false,
   rejoining: false,

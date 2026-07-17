@@ -74,6 +74,8 @@ function plantDesired(state, playerId, plot) {
 function urgentKitchenAction(state, playerId) {
   const player = state.players[playerId];
   if (player.task) return false;
+  const flip = state.stoves.find((stove) => stove.state === 'needsFlip');
+  if (flip) return act(state, playerId, C.ACTIONS.FLIP_CREPE, { stoveId: flip.id }).ok;
   const ready = state.stoves.find((stove) => stove.state === 'ready' && !stove.lockedBy);
   if (ready) return act(state, playerId, C.ACTIONS.SERVE_CREPE, { stoveId: ready.id }).ok;
   const burnt = state.stoves.find((stove) => stove.state === 'burnt' && !stove.lockedBy);

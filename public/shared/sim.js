@@ -218,10 +218,28 @@
         order.assignedBy = playerId;
         stove.state = 'cooking';
         stove.orderId = order.id;
-        stove.readyAt = state.elapsed + state.effects.cookSeconds;
-        stove.burnAt = stove.readyAt + state.effects.burnGraceSeconds;
+        stove.flipAt = state.elapsed + state.effects.cookSeconds / 2;
+        stove.flipDeadline = stove.flipAt + state.effects.flipWindowSeconds;
+        stove.flippedAt = 0;
+        stove.readyAt = 0;
+        stove.burnAt = 0;
         player.lastAction = { kind: 'startCrepe', targetId: stove.id, at: state.elapsed };
         event(state, 'crepeStarted', { playerId, stoveId: stove.id, orderId: order.id });
+        return ok({ flipAt: stove.flipAt, flipDeadline: stove.flipDeadline });
+      }
+      case C.ACTIONS.FLIP_CREPE: {
+        const stove = stoveOf(state, data.stoveId);
+        if (!stove) return fail('Unknown stove.', 'target');
+        if (stove.state !== 'needsFlip') return fail('That crepe is not ready to flip.', 'state');
+        const order = orderOf(state, stove.orderId);
+        if (!order || order.status !== 'cooking') return fail('That order is no longer cooking.', 'state');
+        stove.state = 'cookingSecond';
+        stove.flippedAt = state.elapsed;
+        stove.readyAt = state.elapsed + state.effects.cookSeconds / 2;
+        stove.burnAt = stove.readyAt + state.effects.burnGraceSeconds;
+        state.tutorial.crepeFlipped = true;
+        player.lastAction = { kind: 'flipCrepe', targetId: stove.id, at: state.elapsed };
+        event(state, 'crepeFlipped', { playerId, stoveId: stove.id, orderId: order.id, readyAt: stove.readyAt });
         return ok({ readyAt: stove.readyAt, burnAt: stove.burnAt });
       }
       case C.ACTIONS.SERVE_CREPE: {
@@ -336,6 +354,9 @@
   function clearStove(stove) {
     stove.state = 'empty';
     stove.orderId = null;
+    stove.flipAt = 0;
+    stove.flipDeadline = 0;
+    stove.flippedAt = 0;
     stove.readyAt = 0;
     stove.burnAt = 0;
     stove.lockedBy = null;
@@ -462,7 +483,19 @@
     }
 
     for (const stove of state.stoves) {
-      if (stove.state === 'cooking' && stove.readyAt <= state.elapsed + EPS) {
+      if (stove.state === 'cooking' && stove.flipAt <= state.elapsed + EPS) {
+        stove.state = 'needsFlip';
+        event(state, 'crepeNeedsFlip', { stoveId: stove.id, orderId: stove.orderId, deadline: stove.flipDeadline });
+      }
+      if (stove.state === 'needsFlip' && stove.flipDeadline <= state.elapsed + EPS) {
+        stove.state = 'burnt';
+        stove.lockedBy = null;
+        state.stats.burnt += 1;
+        const order = orderOf(state, stove.orderId);
+        if (order) missOrder(state, order, 'missedFlip');
+        event(state, 'crepeBurnt', { stoveId: stove.id, orderId: stove.orderId });
+      }
+      if (stove.state === 'cookingSecond' && stove.readyAt <= state.elapsed + EPS) {
         stove.state = 'ready';
         const order = orderOf(state, stove.orderId);
         if (order && order.status === 'cooking') order.status = 'ready';

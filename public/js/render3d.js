@@ -12,6 +12,19 @@ function mesh(geometry, color, options) {
   return new THREE.Mesh(geometry, material(color, options));
 }
 
+function makeCanvasTexture(width, height, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  draw(context, width, height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  return texture;
+}
+
 class ParticlePool {
   constructor(scene, capacity) {
     this.capacity = capacity;
@@ -200,21 +213,64 @@ export class Render3D {
     this.scene.add(pail);
 
     const cow = new THREE.Group();
-    const body = mesh(new THREE.BoxGeometry(2.1, 1.25, 1.05), 0xf5eee0);
-    body.position.y = 1.15;
+    const cowTexture = makeCanvasTexture(256, 128, (context, width, height) => {
+      context.fillStyle = '#f4eee2';
+      context.fillRect(0, 0, width, height);
+      context.fillStyle = '#5a4033';
+      for (const [x, y, rx, ry] of [[38, 28, 30, 21], [122, 80, 38, 25], [205, 35, 29, 28], [220, 105, 24, 16]]) {
+        context.beginPath();
+        context.ellipse(x, y, rx, ry, 0.35, 0, Math.PI * 2);
+        context.fill();
+      }
+    });
+    cowTexture.wrapS = THREE.RepeatWrapping;
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 22, 14),
+      new THREE.MeshLambertMaterial({ color: 0xffffff, map: cowTexture })
+    );
+    body.scale.set(1.45, 0.82, 0.72);
+    body.position.y = 1.18;
     cow.add(body);
-    const head = mesh(new THREE.BoxGeometry(0.85, 0.85, 0.8), 0xf5eee0);
-    head.position.set(1.25, 1.3, 0);
-    cow.add(head);
-    for (const z of [-0.35, 0.35]) for (const x of [-0.65, 0.65]) {
-      const leg = mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.85, 8), 0x6e4a35);
-      leg.position.set(x, 0.45, z);
-      cow.add(leg);
-    }
+    const headPivot = new THREE.Group();
+    headPivot.position.set(1.35, 1.42, 0);
+    const head = mesh(new THREE.SphereGeometry(0.52, 18, 12), 0xf4eee2);
+    head.scale.set(1, 1.08, 0.88);
+    headPivot.add(head);
+    const muzzle = mesh(new THREE.SphereGeometry(0.31, 16, 10), 0xd8a98f);
+    muzzle.scale.set(0.85, 0.62, 1);
+    muzzle.position.set(0.42, -0.12, 0);
+    headPivot.add(muzzle);
+    const eyes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.055, 9, 6), material(0x17120f), 2);
+    eyes.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0.43, 0.11, -0.2));
+    eyes.setMatrixAt(1, new THREE.Matrix4().makeTranslation(0.43, 0.11, 0.2));
+    headPivot.add(eyes);
+    cow.add(headPivot);
+    const legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.15, 0.9, 9), material(0x6e4a35), 4);
+    [[-0.72, 0.45, -0.38], [-0.72, 0.45, 0.38], [0.72, 0.45, -0.38], [0.72, 0.45, 0.38]].forEach((position, index) => {
+      legs.setMatrixAt(index, new THREE.Matrix4().makeTranslation(position[0], position[1], position[2]));
+    });
+    cow.add(legs);
+    const ears = new THREE.InstancedMesh(new THREE.ConeGeometry(0.18, 0.42, 8), material(0x8a5b46), 2);
+    const earMatrix = new THREE.Matrix4();
+    ears.setMatrixAt(0, earMatrix.compose(new THREE.Vector3(0.05, 0.42, -0.35), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.2, 0, -1.2)), new THREE.Vector3(1, 1, 1)));
+    ears.setMatrixAt(1, earMatrix.compose(new THREE.Vector3(0.05, 0.42, 0.35), new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.2, 0, -1.2)), new THREE.Vector3(1, 1, 1)));
+    headPivot.add(ears);
+    const horns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.09, 0.34, 8), material(0xd9c8a8), 2);
+    horns.setMatrixAt(0, earMatrix.compose(new THREE.Vector3(-0.05, 0.48, -0.22), new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.35, 0, 0.2)), new THREE.Vector3(1, 1, 1)));
+    horns.setMatrixAt(1, earMatrix.compose(new THREE.Vector3(-0.05, 0.48, 0.22), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.35, 0, 0.2)), new THREE.Vector3(1, 1, 1)));
+    headPivot.add(horns);
+    const udder = mesh(new THREE.SphereGeometry(0.3, 14, 9), 0xe4a5a7);
+    udder.scale.set(1.15, 0.65, 0.9);
+    udder.position.set(0.25, 0.5, 0);
+    cow.add(udder);
+    const tail = mesh(new THREE.ConeGeometry(0.12, 1.05, 8), 0x6e4a35);
+    tail.rotation.z = -1.1;
+    tail.position.set(-1.42, 1.22, 0);
+    cow.add(tail);
     const milkBadge = mesh(new THREE.SphereGeometry(0.18, 12, 8), 0xeaf7ff);
     milkBadge.position.set(1.25, 2.15, 0);
     cow.add(milkBadge);
-    cow.userData.milkBadge = milkBadge;
+    cow.userData = { milkBadge, headPivot, tail, body };
     cow.position.set(-10.5, 0, 6.1);
     this._target(body, { type: 'cow', id: 'cow' });
     this.targets.set('cow-group', cow);
@@ -253,14 +309,48 @@ export class Render3D {
     backWall.position.set(6, 1.45, -6);
     this.scene.add(backWall);
 
-    const fridge = mesh(new THREE.BoxGeometry(2.1, 3.8, 1.8), 0xdbeaf0);
-    fridge.position.set(1.2, 1.95, -4.8);
-    this.scene.add(fridge);
+    const fridgeGroup = new THREE.Group();
+    const fridgeBody = mesh(new THREE.BoxGeometry(2.2, 3.9, 1.9), 0xb9ced5);
+    fridgeBody.position.y = 1.95;
+    fridgeGroup.add(fridgeBody);
+    const freezerDoor = mesh(new THREE.BoxGeometry(1.9, 1.05, 0.13), 0xeaf3f5);
+    freezerDoor.position.set(0, 3.12, 1.01);
+    fridgeGroup.add(freezerDoor);
+    const fridgeDoorPivot = new THREE.Group();
+    fridgeDoorPivot.position.set(0.95, 1.68, 1.01);
+    const fridgeDoor = mesh(new THREE.BoxGeometry(1.9, 2.35, 0.13), 0xdcebee);
+    fridgeDoor.position.x = -0.95;
+    fridgeDoorPivot.add(fridgeDoor);
+    fridgeGroup.add(fridgeDoorPivot);
+    const handles = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), material(0x6e838a), 2);
+    handles.setMatrixAt(0, new THREE.Matrix4().makeTranslation(0.7, 3.12, 1.12));
+    handles.setMatrixAt(1, new THREE.Matrix4().makeTranslation(0.7, 1.85, 1.12));
+    fridgeGroup.add(handles);
+    fridgeGroup.position.set(1.2, 0, -4.8);
+    fridgeGroup.userData = { doorPivot: fridgeDoorPivot, door: fridgeDoor };
+    this.targets.set('fridge-group', fridgeGroup);
+    this.scene.add(fridgeGroup);
 
-    const sink = mesh(new THREE.CylinderGeometry(0.82, 0.62, 0.55, 20), 0x9eb6bf);
-    sink.position.set(1.3, 1.15, 3.8);
-    this._target(sink, { type: 'sink', id: 'sink' });
-    this.scene.add(sink);
+    const sinkGroup = new THREE.Group();
+    const sinkCabinet = mesh(new THREE.BoxGeometry(2.15, 1.35, 1.8), 0x8d7666);
+    sinkCabinet.position.y = 0.68;
+    sinkGroup.add(sinkCabinet);
+    const sinkBasin = mesh(new THREE.CylinderGeometry(0.78, 0.58, 0.34, 22), 0xaebfc5);
+    sinkBasin.position.y = 1.48;
+    sinkGroup.add(sinkBasin);
+    const faucet = mesh(new THREE.TorusGeometry(0.42, 0.065, 8, 18, Math.PI), 0x667b82);
+    faucet.rotation.z = Math.PI / 2;
+    faucet.position.set(0, 1.95, -0.25);
+    sinkGroup.add(faucet);
+    const waterStream = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.65, 8), 0x58bde9, { transparent: true, opacity: 0.72 });
+    waterStream.position.set(0.4, 1.55, -0.25);
+    waterStream.visible = false;
+    sinkGroup.add(waterStream);
+    sinkGroup.position.set(1.3, 0, 3.8);
+    this._target(sinkBasin, { type: 'sink', id: 'sink' });
+    sinkGroup.userData = { waterStream, faucet };
+    this.targets.set('sink-group', sinkGroup);
+    this.scene.add(sinkGroup);
 
     const mixerGroup = new THREE.Group();
     const counter = mesh(new THREE.BoxGeometry(3, 1.4, 2.2), 0x9b603b);
@@ -270,8 +360,49 @@ export class Render3D {
     bowl.rotation.x = Math.PI;
     bowl.position.y = 1.55;
     mixerGroup.add(bowl);
+    const ingredientMesh = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(0.28, 12, 8),
+      new THREE.MeshLambertMaterial({ vertexColors: true }),
+      3
+    );
+    ingredientMesh.setMatrixAt(0, new THREE.Matrix4().compose(
+      new THREE.Vector3(-0.28, 1.53, 0),
+      new THREE.Quaternion(),
+      new THREE.Vector3(1.25, 0.48, 1)
+    ));
+    ingredientMesh.setMatrixAt(1, new THREE.Matrix4().compose(
+      new THREE.Vector3(0.27, 1.55, 0.12),
+      new THREE.Quaternion(),
+      new THREE.Vector3(0.78, 0.78, 0.78)
+    ));
+    ingredientMesh.setMatrixAt(2, new THREE.Matrix4().compose(
+      new THREE.Vector3(0, 1.43, 0),
+      new THREE.Quaternion(),
+      new THREE.Vector3(1.65, 0.2, 1.65)
+    ));
+    ingredientMesh.setColorAt(0, new THREE.Color(0xf4ead7));
+    ingredientMesh.setColorAt(1, new THREE.Color(0xfff7dc));
+    ingredientMesh.setColorAt(2, new THREE.Color(0xeaf7ff));
+    ingredientMesh.instanceColor.needsUpdate = true;
+    ingredientMesh.visible = false;
+    mixerGroup.add(ingredientMesh);
+    const batterSurface = mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.08, 22), 0xf0cf8b);
+    batterSurface.position.set(0, 1.47, 0);
+    batterSurface.visible = false;
+    mixerGroup.add(batterSurface);
+    const blenderHead = mesh(new THREE.BoxGeometry(0.62, 0.42, 0.55), 0xb54c3e);
+    blenderHead.position.set(0, 2.6, -0.1);
+    mixerGroup.add(blenderHead);
+    const blenderShaft = mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.08, 10), 0x69777c);
+    blenderShaft.position.set(0, 2.08, 0);
+    mixerGroup.add(blenderShaft);
+    const whisk = mesh(new THREE.TorusGeometry(0.18, 0.035, 7, 16), 0x69777c);
+    whisk.rotation.x = Math.PI / 2;
+    whisk.position.set(0, 1.58, 0);
+    mixerGroup.add(whisk);
     mixerGroup.position.set(4.2, 0, -4.6);
     this._target(bowl, { type: 'mixer', id: 'mixer' });
+    mixerGroup.userData = { bowl, ingredientMesh, batterSurface, blenderHead, blenderShaft, whisk };
     this.targets.set('mixer-group', mixerGroup);
     this.scene.add(mixerGroup);
 
@@ -293,42 +424,50 @@ export class Render3D {
       const toppingTexture = toppingAtlas.clone();
       toppingTexture.needsUpdate = true;
       toppingTexture.repeat.set(1 / C.RECIPES.length, 1);
-      crepe.material.map = toppingTexture;
-      crepe.material.color.setHex(0xffffff);
+      crepe.material.map = null;
+      crepe.material.color.setHex(0xe0a75f);
       crepe.position.y = 1.57;
       crepe.visible = false;
       group.add(crepe);
       group.position.set(7.2, 0, -3.6 + index * 3.6);
       this._target(top, { type: 'stove', id: 'stove-' + (index + 1) });
-      this.stoveViews.set('stove-' + (index + 1), { group, ring, crepe, toppingTexture });
+      this.stoveViews.set('stove-' + (index + 1), { group, ring, crepe, toppingTexture, hasToppings: false, flipStartedAt: 0 });
       this.scene.add(group);
     }
 
     const service = mesh(new THREE.BoxGeometry(2.1, 1.5, 11), 0xb87643);
     service.position.set(11.6, 0.75, 0);
     this.scene.add(service);
-    for (let z = -4.2; z <= 2.8; z += 2.8) {
-      const stool = mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), 0x6d4a35);
-      stool.position.set(13.2, 0.38, z);
-      this.scene.add(stool);
-    }
+    const stools = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.45, 0.5, 0.75, 14), material(0x6d4a35), 3);
+    [-4.2, -1.4, 1.4].forEach((z, index) => stools.setMatrixAt(index, new THREE.Matrix4().makeTranslation(13.2, 0.38, z)));
+    this.scene.add(stools);
   }
 
   _buildCustomers() {
-    const colors = [0xcc5a61, 0x5d88be, 0xd59a48, 0x6b9c65, 0x9670af, 0x4f9c98, 0xd66e9b, 0x8d7359];
+    const bodyMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.46, 1.05, 12), material(0xd46d52), 8);
+    const headMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.34, 14, 10), material(0xf1c9a3), 8);
+    const hairMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.36, 12, 8), material(0x6f4934), 8);
+    const armMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.09, 0.72, 8), material(0xf1c9a3), 16);
+    const legMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.12, 0.68, 8), material(0x5d514a), 16);
+    const eyeMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.04, 8, 6), material(0x17120f), 16);
+    bodyMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    headMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    hairMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    armMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    legMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    eyeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    bodyMesh.frustumCulled = headMesh.frustumCulled = hairMesh.frustumCulled = armMesh.frustumCulled = legMesh.frustumCulled = eyeMesh.frustumCulled = false;
     for (let index = 0; index < 8; index += 1) {
-      const group = new THREE.Group();
-      const body = mesh(new THREE.CylinderGeometry(0.35, 0.46, 1.05, 12), colors[index]);
-      body.position.y = 0.85;
-      group.add(body);
-      const head = mesh(new THREE.SphereGeometry(0.34, 14, 10), 0xf1c9a3);
-      head.position.y = 1.58;
-      group.add(head);
-      group.position.set(13.3, 0, -4.3 + index * 1.25);
-      group.visible = false;
-      this.customerViews.push(group);
-      this.scene.add(group);
+      this.customerViews.push({
+        position: new THREE.Vector3(13.3, 0, -4.3 + index * 1.25),
+        rotationY: -Math.PI / 2,
+        scale: 0,
+        visible: false,
+        payBounceUntil: 0
+      });
     }
+    this.customerMeshes = { bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh };
+    this.scene.add(bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh);
   }
 
   _buildPlayers() {
@@ -428,23 +567,39 @@ export class Render3D {
   }
 
   panBy(dx, dy) {
-    this.cameraPan.x = THREE.MathUtils.clamp(this.cameraPan.x - dx * 0.015 / this.cameraZoom, -10, 10);
-    this.cameraPan.z = THREE.MathUtils.clamp(this.cameraPan.z - dy * 0.015 / this.cameraZoom, -7, 7);
+    this.cameraPan.x = THREE.MathUtils.clamp(this.cameraPan.x - dx * 0.015 / this.cameraZoom, -24, 24);
+    this.cameraPan.z = THREE.MathUtils.clamp(this.cameraPan.z - dy * 0.015 / this.cameraZoom, -16, 16);
+    this._syncCamera();
+  }
+
+  panWorld(dx, dz) {
+    this.cameraPan.x = THREE.MathUtils.clamp(this.cameraPan.x + dx, -24, 24);
+    this.cameraPan.z = THREE.MathUtils.clamp(this.cameraPan.z + dz, -16, 16);
+    this._syncCamera();
   }
 
   zoomBy(amount) {
     this.cameraZoom = THREE.MathUtils.clamp(this.cameraZoom * amount, 0.4, 1.8);
     this.resize();
+    this._syncCamera();
   }
 
   resetView() {
     this.cameraPan.set(0, 0, 0);
     this.cameraZoom = this._phoneViewZoom();
     this.resize();
+    this._syncCamera();
   }
 
   _phoneViewZoom() {
     return Math.min(window.innerWidth || 1000, window.innerHeight || 1000) < 700 ? 0.72 : 1;
+  }
+
+  _syncCamera() {
+    const target = new THREE.Vector3(this.cameraPan.x, 0, this.cameraPan.z);
+    this.camera.position.set(22 + target.x, CAMERA_HEIGHT, 22 + target.z);
+    this.camera.lookAt(target);
+    this.camera.updateMatrixWorld(true);
   }
 
   setReducedMotion(value) {
@@ -528,11 +683,27 @@ export class Render3D {
 
     for (const stove of snapshot.stoves) {
       const view = this.stoveViews.get(stove.id);
-      const colors = { empty: 0x555555, cooking: 0xe18435, ready: 0x4aa85a, serving: 0x66c878, burnt: 0xc43c35 };
+      const colors = {
+        empty: 0x555555,
+        cooking: 0xe18435,
+        needsFlip: 0x329fe3,
+        cookingSecond: 0xe18435,
+        ready: 0x4aa85a,
+        serving: 0x66c878,
+        burnt: 0xc43c35
+      };
       view.ring.material.color.setHex(colors[stove.state]);
+      const flipPulse = stove.state === 'needsFlip' && !this.reducedMotion ? 1 + Math.sin(performance.now() * 0.018) * 0.13 : 1;
+      view.ring.scale.setScalar(flipPulse);
       view.crepe.visible = stove.state !== 'empty';
+      const hasToppings = ['cookingSecond', 'ready', 'serving'].includes(stove.state);
+      if (hasToppings !== view.hasToppings) {
+        view.hasToppings = hasToppings;
+        view.crepe.material.map = hasToppings ? view.toppingTexture : null;
+        view.crepe.material.needsUpdate = true;
+      }
       if (stove.state === 'ready') view.crepe.position.y = 1.62 + (this.reducedMotion ? 0 : Math.sin(performance.now() * 0.008) * 0.05);
-      view.crepe.material.color.setHex(stove.state === 'burnt' ? 0x39251b : 0xffffff);
+      view.crepe.material.color.setHex(stove.state === 'burnt' ? 0x39251b : hasToppings ? 0xffffff : 0xe0a75f);
       const order = snapshot.orders.find((item) => item.id === stove.orderId);
       if (order) {
         const recipeIndex = Math.max(0, C.RECIPES.findIndex((recipe) => recipe.id === order.recipeId));
@@ -545,13 +716,14 @@ export class Render3D {
       const order = activeOrders[index];
       view.visible = !!order;
       if (!order) {
+        view.scale = 0;
         this._setInstance(this.patienceRings, index, new THREE.Vector3(0, -100, 0), 0);
         return;
       }
       const targetX = order.status === 'eating' ? 12.55 : 13.3;
       view.position.x += (targetX - view.position.x) * 0.08;
-      view.rotation.y = order.status === 'eating' ? -Math.PI / 2 : Math.PI;
-      view.scale.setScalar(order.status === 'eating' ? 1.06 : 1);
+      view.rotationY = -Math.PI / 2;
+      view.scale = order.status === 'eating' ? 1.06 : 1;
       const patience = Math.max(0, Math.min(1, (order.expiresAt - snapshot.elapsed) / Math.max(0.01, order.expiresAt - order.createdAt)));
       const ringScale = order.status === 'eating' ? 0 : 0.35 + patience * 0.65;
       this._setInstance(this.patienceRings, index, new THREE.Vector3(view.position.x, 0.05, view.position.z), ringScale);
@@ -559,6 +731,7 @@ export class Render3D {
     });
     this.patienceRings.instanceMatrix.needsUpdate = true;
     if (this.patienceRings.instanceColor) this.patienceRings.instanceColor.needsUpdate = true;
+    this._updateCustomerInstances(activeOrders);
 
     for (const avatar of this.playerViews.values()) avatar.visible = false;
     const playerEntries = Object.values(snapshot.players).sort((a, b) => a.seat - b.seat);
@@ -573,9 +746,126 @@ export class Render3D {
     });
 
     const mixer = this.targets.get('mixer-group');
-    if (snapshot.mixer.state === 'mixing') mixer.rotation.y += 0.035;
+    this._updateMixer(mixer, snapshot);
+    this._updateKitchenProps(snapshot);
+    this._updateCow(cow, snapshot);
+    this._updateStoveAnimations(snapshot);
     this._updateContactShadows(snapshot, playerEntries, activeOrders, pail, cow);
     this._consumeEffects(snapshot.events || []);
+  }
+
+  _updateCustomerInstances(activeOrders) {
+    const { bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh } = this.customerMeshes;
+    const now = performance.now() * 0.001;
+    const yAxis = new THREE.Vector3(0, 1, 0);
+    for (let index = 0; index < 8; index += 1) {
+      const view = this.customerViews[index];
+      const order = activeOrders[index];
+      const scale = view.visible ? view.scale : 0;
+      const eating = !!order && order.status === 'eating';
+      const bounce = this.reducedMotion ? 0 : Math.sin(now * (eating ? 8 : 3) + index) * (eating ? 0.055 : 0.018);
+      const quaternion = new THREE.Quaternion().setFromAxisAngle(yAxis, view.rotationY);
+      bodyMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+        new THREE.Vector3(view.position.x, 0.85 + bounce, view.position.z),
+        quaternion,
+        new THREE.Vector3(scale, scale, scale)
+      ));
+      headMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+        new THREE.Vector3(view.position.x, 1.58 + bounce, view.position.z),
+        quaternion,
+        new THREE.Vector3(scale, scale, scale)
+      ));
+      hairMesh.setMatrixAt(index, new THREE.Matrix4().compose(
+        new THREE.Vector3(view.position.x, 1.82 + bounce, view.position.z),
+        quaternion,
+        new THREE.Vector3(scale * 0.94, scale * 0.43, scale * 0.94)
+      ));
+      for (let side = 0; side < 2; side += 1) {
+        const armIndex = index * 2 + side;
+        const sideSign = side === 0 ? -1 : 1;
+        const local = new THREE.Vector3(sideSign * 0.42, 1.02, eating ? 0.22 : 0).applyAxisAngle(yAxis, view.rotationY);
+        const armSwing = this.reducedMotion ? 0
+          : eating ? Math.sin(now * 9 + side * Math.PI) * 0.45 : Math.sin(now * 3 + index) * 0.08;
+        const armQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(armSwing, 0, sideSign * 0.22));
+        armQuat.premultiply(quaternion);
+        armMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
+          view.position.clone().add(local),
+          armQuat,
+          new THREE.Vector3(scale, scale, scale)
+        ));
+        const legLocal = new THREE.Vector3(sideSign * 0.2, 0.35, 0).applyAxisAngle(yAxis, view.rotationY);
+        legMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
+          view.position.clone().add(legLocal),
+          quaternion,
+          new THREE.Vector3(scale, scale, scale)
+        ));
+        const eyeLocal = new THREE.Vector3(sideSign * 0.14, 1.63 + bounce, 0.3).applyAxisAngle(yAxis, view.rotationY);
+        eyeMesh.setMatrixAt(armIndex, new THREE.Matrix4().compose(
+          view.position.clone().add(eyeLocal),
+          quaternion,
+          new THREE.Vector3(scale, scale, scale)
+        ));
+      }
+    }
+    for (const instanced of [bodyMesh, headMesh, hairMesh, armMesh, legMesh, eyeMesh]) instanced.instanceMatrix.needsUpdate = true;
+  }
+
+  _updateMixer(mixer, snapshot) {
+    const parts = mixer.userData;
+    const mixing = snapshot.mixer.state === 'mixing';
+    const progress = mixing
+      ? THREE.MathUtils.clamp(1 - (snapshot.mixer.readyAt - snapshot.elapsed) / Math.max(0.01, snapshot.effects.mixSeconds), 0, 1)
+      : 0;
+    parts.ingredientMesh.visible = mixing && progress < 0.38;
+    parts.batterSurface.visible = mixing && progress >= 0.18;
+    if (parts.batterSurface.visible) {
+      const fill = THREE.MathUtils.clamp((progress - 0.18) / 0.55, 0.2, 1);
+      parts.batterSurface.scale.set(0.7 + fill * 0.3, 1, 0.7 + fill * 0.3);
+    }
+    parts.blenderHead.position.y = mixing
+      ? 2.45 + (this.reducedMotion ? 0 : Math.sin(performance.now() * 0.02) * 0.025)
+      : 2.6;
+    parts.blenderShaft.visible = true;
+    parts.whisk.visible = mixing;
+    if (mixing && !this.reducedMotion) {
+      parts.whisk.rotation.z += 0.48;
+      parts.blenderShaft.rotation.y += 0.3;
+    }
+  }
+
+  _updateKitchenProps(snapshot) {
+    const sink = this.targets.get('sink-group');
+    const filling = Object.values(snapshot.players).some((player) => player.task && player.task.kind === 'fillPail');
+    sink.userData.waterStream.visible = filling;
+    if (filling && !this.reducedMotion) sink.userData.waterStream.scale.y = 0.85 + Math.sin(performance.now() * 0.02) * 0.12;
+    const fridge = this.targets.get('fridge-group');
+    const opened = snapshot.events.some((event) => ['harvested', 'milked'].includes(event.type) && snapshot.elapsed - event.at < 0.9);
+    fridge.userData.doorPivot.rotation.y += ((opened ? -0.88 : 0) - fridge.userData.doorPivot.rotation.y) * 0.16;
+  }
+
+  _updateCow(cow, snapshot) {
+    const now = performance.now() * 0.001;
+    cow.userData.headPivot.rotation.z = this.reducedMotion ? 0 : Math.sin(now * 1.5) * 0.075;
+    cow.userData.headPivot.rotation.y = this.reducedMotion ? 0 : Math.sin(now * 0.85) * 0.12;
+    cow.userData.tail.rotation.z = -1.1 + (this.reducedMotion ? 0 : Math.sin(now * 4.2) * 0.38);
+    cow.userData.body.scale.y = 0.82 + (this.reducedMotion ? 0 : Math.sin(now * 1.8) * 0.018);
+    cow.userData.milkBadge.visible = snapshot.cow.milk > 0;
+  }
+
+  _updateStoveAnimations() {
+    const now = performance.now();
+    for (const view of this.stoveViews.values()) {
+      if (!view.flipStartedAt) continue;
+      const progress = (now - view.flipStartedAt) / 650;
+      if (progress >= 1 || this.reducedMotion) {
+        view.crepe.rotation.x = 0;
+        view.crepe.position.y = 1.57;
+        view.flipStartedAt = 0;
+      } else {
+        view.crepe.rotation.x = progress * Math.PI * 2;
+        view.crepe.position.y = 1.57 + Math.sin(progress * Math.PI) * 0.75;
+      }
+    }
   }
 
   _setInstance(instancedMesh, index, position, scale) {
@@ -618,14 +908,20 @@ export class Render3D {
         position = this.targets.get('mixer-group').position.clone().add(new THREE.Vector3(0, 1.7, 0));
       } else if (event.type === 'pailFilled') {
         const sink = this.targets.get('sink:sink');
-        position = sink.position.clone().add(new THREE.Vector3(0, 0.8, 0));
+        position = new THREE.Vector3();
+        sink.getWorldPosition(position);
+        position.add(new THREE.Vector3(0, 0.8, 0));
       } else if (event.type === 'served' || event.type === 'customerPaid') {
         position = new THREE.Vector3(12.3, 1.4, 0);
+      }
+      if (event.type === 'crepeFlipped' && event.stoveId && this.stoveViews.has(event.stoveId)) {
+        this.stoveViews.get(event.stoveId).flipStartedAt = performance.now();
       }
       if (!position) continue;
       if (event.type === 'watered' || event.type === 'pailFilled') { color = 0x62b9ef; mode = 'water'; }
       else if (event.type === 'mixerStarted') { color = 0xfff0cf; mode = 'steam'; }
       else if (event.type === 'crepeReady') { color = 0xf5e4bd; mode = 'steam'; }
+      else if (event.type === 'crepeNeedsFlip' || event.type === 'crepeFlipped') color = 0x62b9ef;
       else if (event.type === 'customerPaid' || event.type === 'served') color = 0xffcf45;
       else if (event.type === 'harvested' || event.type === 'cropReady') color = 0x85d46c;
       else if (event.type === 'milked' || event.type === 'milkReady') color = 0xeaf7ff;
@@ -647,9 +943,7 @@ export class Render3D {
   }
 
   render(time) {
-    const target = new THREE.Vector3(this.cameraPan.x, 0, this.cameraPan.z);
-    this.camera.position.set(22 + target.x, CAMERA_HEIGHT, 22 + target.z);
-    this.camera.lookAt(target);
+    this._syncCamera();
     const t = this.lastSnapshot ? this.lastSnapshot.elapsed / Math.max(1, this.lastSnapshot.level.daySeconds) : 0;
     this.scene.background.setRGB(0.72 - t * 0.08, 0.84 - t * 0.06, 0.61 + t * 0.03);
     this.renderer.render(this.scene, this.camera);

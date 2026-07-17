@@ -110,6 +110,9 @@
         id: 'stove-' + (index + 1),
         state: 'empty',
         orderId: null,
+        flipAt: 0,
+        flipDeadline: 0,
+        flippedAt: 0,
         readyAt: 0,
         burnAt: 0,
         lockedBy: null
@@ -128,6 +131,7 @@
         milkCollected: 0,
         batterMixed: false,
         crepeStarted: false,
+        crepeFlipped: false,
         served: false
       },
       events: [],

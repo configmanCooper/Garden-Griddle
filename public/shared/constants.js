@@ -9,7 +9,7 @@
   'use strict';
 
   const PROTOCOL = 1;
-  const CLIENT_BUILD = '1.1.1';
+  const CLIENT_BUILD = '1.2.0';
   const MAX_LEVEL = 50;
   const MAX_PLAYERS = 2;
 
@@ -62,6 +62,7 @@
     MILK: 'milk',
     MIX_BATTER: 'mixBatter',
     START_CREPE: 'startCrepe',
+    FLIP_CREPE: 'flipCrepe',
     SERVE_CREPE: 'serveCrepe',
     CLEAR_BURNT: 'clearBurnt',
     CANCEL_TASK: 'cancelTask'

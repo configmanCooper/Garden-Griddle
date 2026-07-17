@@ -93,9 +93,13 @@ async function clickTarget(page, type, id, holdMs) {
     assert.ok(farZoom < originalZoom * 0.55, 'Phone camera can zoom much farther out.');
     await host.evaluate(() => window.game.render.panBy(-10000, -10000));
     const farPan = await host.evaluate(() => ({ x: window.game.render.cameraPan.x, z: window.game.render.cameraPan.z }));
-    assert.deepStrictEqual(farPan, { x: 10, z: 7 }, 'Camera can pan across the expanded scene range.');
+    assert.deepStrictEqual(farPan, { x: 24, z: 16 }, 'Camera can pan across the expanded scene range.');
     await host.click('#camera-fit');
     assert.strictEqual(await host.evaluate(() => window.game.render.cameraPan.length()), 0);
+    await host.click('#camera-right');
+    await host.click('#camera-down');
+    assert.deepStrictEqual(await host.evaluate(() => ({ x: window.game.render.cameraPan.x, z: window.game.render.cameraPan.z })), { x: 4, z: 3 });
+    await host.click('#camera-fit');
     const room = gameServer.rooms.getRoom(code);
     room.state.effects.plantSeconds = 0.1;
     room.state.effects.waterSeconds = 0.1;
@@ -107,6 +111,9 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForSelector('#crop-modal:not(.hidden)');
     await host.click('#crop-options .crop-option');
     await host.waitForFunction(() => window.game.state.snapshot.plots[0].state === 'dry');
+    assert.match(await host.textContent('#selected-crop'), /Wheat/);
+    await clickTarget(host, 'plot', 'plot-2');
+    await host.waitForFunction(() => window.game.state.snapshot.plots[1].state === 'dry');
     await clickTarget(host, 'pail', 'pail');
     await host.waitForFunction(() => window.game.state.snapshot.pail.holder === window.game.state.session.playerId);
     await clickTarget(host, 'sink', 'sink');
@@ -137,6 +144,12 @@ async function clickTarget(page, type, id, holdMs) {
     await host.waitForSelector('.order-ticket:not([disabled])');
     await host.click('.order-ticket:not([disabled])');
     await clickTarget(host, 'stove', 'stove-1');
+    await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'needsFlip');
+    await host.waitForFunction(() => window.game.render.stoveViews.get('stove-1').crepe.material.map === null);
+    const flipResult = await host.evaluate(() => window.game.interact({ type: 'stove', id: 'stove-1' }, false));
+    assert.strictEqual(flipResult.ok, true);
+    await host.waitForFunction(() => ['cookingSecond', 'ready'].includes(window.game.state.snapshot.stoves[0].state));
+    await host.waitForFunction(() => !!window.game.render.stoveViews.get('stove-1').crepe.material.map);
     await host.waitForFunction(() => window.game.state.snapshot.stoves[0].state === 'ready');
     await clickTarget(host, 'stove', 'stove-1');
     await host.waitForFunction(() => window.game.state.snapshot.stats.served >= 1);
@@ -218,13 +231,17 @@ async function clickTarget(page, type, id, holdMs) {
       tip: 0
     }));
     room.state.stoves.forEach((stove, index) => {
-      stove.state = 'cooking';
+      stove.state = 'cookingSecond';
       stove.orderId = room.state.orders[index].id;
       stove.readyAt = room.state.elapsed + 5;
       stove.burnAt = room.state.elapsed + 10;
     });
+    room.state.mixer = { state: 'mixing', startedAt: room.state.elapsed, readyAt: room.state.elapsed + 5, startedBy: room.state.players[Object.keys(room.state.players)[0]].id };
     gameServer.io.to(code).emit(C.EVENTS.SNAPSHOT, Sim.snapshot(room.state));
-    await host.waitForTimeout(400);
+    await host.waitForFunction(() => {
+      return window.game.state.snapshot.stoves.every((stove) => stove.state === 'cookingSecond')
+        && [...window.game.render.stoveViews.values()].every((view) => !!view.crepe.material.map);
+    });
     const peakMetrics = await host.evaluate(() => window.game.render.metrics());
     assert.ok(peakMetrics.calls < 120, 'Worst-case draw calls stay under the planned budget: ' + peakMetrics.calls);
     assert.ok(peakMetrics.triangles < 250000, 'Worst-case triangles stay under the planned budget: ' + peakMetrics.triangles);
