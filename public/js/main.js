@@ -362,9 +362,15 @@ class Game {
 
   applySettings() {
     Audio.configure(this.save.settings);
+    this.ui.updateSoundButtons(this.save.settings.sfx !== false);
     document.body.classList.toggle('reduced-motion', !!this.save.settings.reducedMotion);
     document.body.classList.toggle('high-contrast', !!this.save.settings.highContrast);
     if (this.render) this.render.setReducedMotion(this.save.settings.reducedMotion);
+  }
+
+  toggleSound() {
+    Audio.unlock();
+    this.updateSetting('sfx', this.save.settings.sfx === false);
   }
 
   isPlaying() {

@@ -59,6 +59,13 @@ async function clickTarget(page, type, id, holdMs) {
     await host.goto(url, { waitUntil: 'load', timeout: 90000 });
     await host.waitForFunction(() => window.game && window.game.render);
     await host.waitForFunction(() => window.game.state.connected);
+    await host.click('#sound-toggle-title');
+    assert.strictEqual(await host.evaluate(() => window.game.save.settings.sfx), false);
+    assert.strictEqual(await host.textContent('#sound-toggle-title'), 'Sound: Off');
+    assert.strictEqual(await host.textContent('#sound-toggle-room'), 'Sound: Off');
+    assert.strictEqual(await host.textContent('#sound-toggle-game'), '🔇');
+    await host.click('#sound-toggle-title');
+    assert.strictEqual(await host.evaluate(() => window.game.save.settings.sfx), true);
     await host.click('#open-settings-title');
     await host.check('#setting-reduced-motion');
     assert.strictEqual(await host.evaluate(() => document.body.classList.contains('reduced-motion') && window.game.render.reducedMotion), true);

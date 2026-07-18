@@ -56,6 +56,14 @@ async function run() {
     assert.strictEqual(health.status, 200);
     const privacy = await fetch(url + '/privacy.html');
     assert.strictEqual(privacy.status, 200);
+    const music = await fetch(url + '/assets/gardenandgriddlesong1.mp3');
+    assert.strictEqual(music.status, 200);
+    assert.match(music.headers.get('content-type'), /audio\/mpeg/);
+    await music.arrayBuffer();
+    const music2 = await fetch(url + '/assets/gardenandgriddlesong2.mp3');
+    assert.strictEqual(music2.status, 200);
+    assert.match(music2.headers.get('content-type'), /audio\/mpeg/);
+    await music2.arrayBuffer();
     const assetLinks = await fetch(url + '/.well-known/assetlinks.json');
     assert.strictEqual(assetLinks.status, 200);
     assert.match(assetLinks.headers.get('content-type'), /application\/json/);

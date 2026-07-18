@@ -1,18 +1,81 @@
 let context = null;
 let enabled = true;
 let vibrationEnabled = true;
+let music = null;
+let unlocked = false;
+let musicIndex = 0;
+let fadeToken = 0;
+const MUSIC_VOLUME = 0.38;
+const MUSIC_TRACKS = [
+  '/assets/gardenandgriddlesong1.mp3?v=1',
+  '/assets/gardenandgriddlesong2.mp3?v=1'
+];
 
 export function configure(settings) {
   enabled = settings.sfx !== false;
   vibrationEnabled = settings.vibration !== false;
+  if (!enabled) stopMusic();
+  else if (unlocked) startMusic();
 }
 
 export function unlock() {
+  unlocked = true;
   if (context) {
     if (context.state === 'suspended') context.resume().catch(() => {});
-    return;
+  } else {
+    try { context = new (window.AudioContext || window.webkitAudioContext)(); } catch (_error) { context = null; }
   }
-  try { context = new (window.AudioContext || window.webkitAudioContext)(); } catch (_error) { context = null; }
+  if (enabled) startMusic();
+}
+
+function startMusic() {
+  if (!enabled || !unlocked) return;
+  if (!music) {
+    musicIndex = 0;
+    music = new Audio(MUSIC_TRACKS[musicIndex]);
+    music.loop = false;
+    music.volume = 0;
+    music.preload = 'auto';
+    music.addEventListener('ended', playNextTrack);
+  }
+  if (music.paused) {
+    const playback = music.play();
+    if (playback && playback.catch) playback.catch(() => {});
+    fadeMusicIn();
+  }
+}
+
+function stopMusic() {
+  fadeToken += 1;
+  if (music && !music.paused) {
+    try { music.pause(); } catch (_error) {}
+  }
+  if (music) music.volume = 0;
+}
+
+function playNextTrack() {
+  if (!music || !enabled || !unlocked) return;
+  musicIndex = (musicIndex + 1) % MUSIC_TRACKS.length;
+  music.src = MUSIC_TRACKS[musicIndex];
+  music.volume = 0;
+  music.load();
+  const playback = music.play();
+  if (playback && playback.catch) playback.catch(() => {});
+  fadeMusicIn();
+}
+
+function fadeMusicIn() {
+  if (!music) return;
+  const token = ++fadeToken;
+  const startedAt = performance.now();
+  const duration = 2200;
+  function step(now) {
+    if (token !== fadeToken || !music || !enabled || music.paused) return;
+    const progress = Math.max(0, Math.min(1, (now - startedAt) / duration));
+    music.volume = MUSIC_VOLUME * progress;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 
 function tone(frequency, duration, type, volume, endFrequency) {
@@ -48,4 +111,11 @@ export const sfx = {
 
 export function vibrate(pattern) {
   if (vibrationEnabled && navigator.vibrate) navigator.vibrate(pattern);
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopMusic();
+    else if (enabled && unlocked) startMusic();
+  });
 }

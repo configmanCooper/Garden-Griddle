@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#493224">
   <title>Garden &amp; Griddle</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/style.css?v=137">
+  <link rel="stylesheet" href="css/style.css?v=138">
 </head>
 <body>
   <canvas id="game-canvas" aria-label="Garden and restaurant game"></canvas>
@@ -27,6 +27,7 @@
             <button id="join-room" class="btn">Join</button>
           </div>
           <div class="utility-actions">
+            <button id="sound-toggle-title" data-sound-toggle class="btn small">Sound: On</button>
             <button id="open-help-title" class="btn small">How to Play</button>
             <button id="open-settings-title" class="btn small">Settings</button>
           </div>
@@ -54,6 +55,7 @@
             <button id="share-room" class="btn small">Share invite</button>
             <button id="open-shop" class="btn small">Upgrades</button>
             <button id="open-settings-room" class="btn small">Settings</button>
+            <button id="sound-toggle-room" data-sound-toggle class="btn small">Sound: On</button>
           </div>
         </header>
         <div id="player-list" class="player-list"></div>
@@ -91,6 +93,7 @@
           <div><strong id="partner-name">Partner</strong><small id="partner-status">Connected</small></div>
           <button id="pause-game" class="icon-btn" aria-label="Pause">II</button>
           <button id="open-help-game" class="icon-btn" aria-label="How to play">?</button>
+          <button id="sound-toggle-game" data-sound-toggle class="icon-btn" aria-label="Turn sound off">🔊</button>
           <button id="practice-exit" class="btn small hidden">Exit Practice</button>
         </div>
       </header>
@@ -207,11 +210,11 @@
   <div id="rotate-gate"><div><strong>Turn your phone sideways</strong><span>Garden &amp; Griddle is designed for landscape play.</span></div></div>
   <div id="unsupported" class="unsupported hidden"><h1>WebGL2 is needed</h1><p>Please update Android System WebView or use a newer browser.</p></div>
 
-  <script src="shared/constants.js?v=137"></script>
-  <script src="shared/balance.js?v=137"></script>
-  <script src="shared/rng.js?v=137"></script>
-  <script src="shared/schema.js?v=137"></script>
-  <script src="js/vendor/socket.io.min.js?v=137"></script>
-  <script type="module" src="js/main.js?v=137"></script>
+  <script src="shared/constants.js?v=138"></script>
+  <script src="shared/balance.js?v=138"></script>
+  <script src="shared/rng.js?v=138"></script>
+  <script src="shared/schema.js?v=138"></script>
+  <script src="js/vendor/socket.io.min.js?v=138"></script>
+  <script type="module" src="js/main.js?v=138"></script>
 </body>
 </html>

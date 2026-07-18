@@ -80,6 +80,9 @@ export class UI {
     byId('setting-vibration').onchange = (event) => this.game.updateSetting('vibration', event.target.checked);
     byId('setting-reduced-motion').onchange = (event) => this.game.updateSetting('reducedMotion', event.target.checked);
     byId('setting-high-contrast').onchange = (event) => this.game.updateSetting('highContrast', event.target.checked);
+    document.querySelectorAll('[data-sound-toggle]').forEach((button) => {
+      button.onclick = () => this.game.toggleSound();
+    });
     document.querySelectorAll('[data-ping]').forEach((button) => {
       button.onclick = () => this.game.ping(button.dataset.ping);
     });
@@ -435,6 +438,17 @@ export class UI {
     byId('setting-reduced-motion').checked = !!settings.reducedMotion;
     byId('setting-high-contrast').checked = !!settings.highContrast;
     byId('settings-modal').classList.remove('hidden');
+  }
+
+  updateSoundButtons(enabled) {
+    const label = enabled ? 'Sound: On' : 'Sound: Off';
+    for (const button of document.querySelectorAll('[data-sound-toggle]')) {
+      const gameButton = button.id === 'sound-toggle-game';
+      button.textContent = gameButton ? (enabled ? '🔊' : '🔇') : label;
+      button.setAttribute('aria-label', enabled ? 'Turn sound off' : 'Turn sound on');
+      button.classList.toggle('sound-off', !enabled);
+    }
+    byId('setting-sfx').checked = enabled;
   }
 
   closeTopModal() {
