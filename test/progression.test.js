@@ -105,7 +105,7 @@ function testLevelCurve() {
   assert.strictEqual(B.compileLevel(100, 2).recipeCount, 10);
   assert.ok(B.compileLevel(100, 2).orderInterval < B.compileLevel(1, 2).orderInterval);
   for (let level = 1; level <= C.MAX_LEVEL; level += 1) {
-    const t = (level - 1) / (C.MAX_LEVEL - 1);
+    const t = B.difficultyProgress(level);
     const oldPrep = 15 + (8 - 15) * t;
     let previousInterval = 12 + (4.5 - 12) * t;
     if ([10, 20, 30, 40, 50, 60, 70, 80, 90, 100].includes(level)) previousInterval *= 0.92;
@@ -126,6 +126,12 @@ function testLevelCurve() {
   assert.ok(B.compileLevel(100, 2).patience < B.compileLevel(1, 2).patience);
   assert.strictEqual(B.compileLevel(1, 2).patience, 48, 'Early customer patience is increased by 20%.');
   assert.strictEqual(B.compileLevel(C.MAX_LEVEL, 2).patience, 21.6, 'Maximum-difficulty patience is increased by 20%.');
+  assert.strictEqual(B.compileLevel(2, 2).recipeCount, 4, 'Difficulty ramp begins immediately with a new recipe on Day 2.');
+  assert.strictEqual(B.compileLevel(26, 2).recipeCount, 10, 'All recipes unlock by Day 26.');
+  for (let level = 2; level < C.MAX_LEVEL; level += 1) {
+    const linear = (level - 1) / (C.MAX_LEVEL - 1);
+    assert.ok(B.difficultyProgress(level) > linear, 'Day ' + level + ' advances faster than the old linear curve.');
+  }
   const level10 = B.compileLevel(10, 2);
   assert.ok(level10.recipeBias.every((id) => C.RECIPES.slice(0, level10.recipeCount).some((recipe) => recipe.id === id)), 'Milestone recipes respect unlocks.');
 }

@@ -1,6 +1,6 @@
 {
   "name": "garden-and-griddle",
-  "version": "1.3.7",
+  "version": "1.4.0",
   "description": "A phone-first online two-player cooperative crepe restaurant and garden game.",
   "private": true,
   "type": "commonjs",

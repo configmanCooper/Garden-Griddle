@@ -184,10 +184,13 @@ Levels are generated from authored formulas plus milestone overrides, not 50 dup
 
 Primary difficulty dimensions:
 
+- Day 1 is unchanged; from Day 2 onward an aggressive ease-out curve reaches difficult pacing much earlier than a linear campaign.
+
 - customer arrivals are reduced to roughly half of the 1.3.2 schedule across all 100 days
 - patience: 20% above the original curve, from approximately 48 seconds early to 21.6 seconds at maximum difficulty
 - prep duration: 15 seconds to 8 seconds
 - active recipe variety: 3 to 10
+- recipe variety ramps quickly: 4 recipes on Day 2 and all 10 by approximately Day 26
 - queue cap: 3 to 8
 - higher chance of two- and three-topping recipes
 - smaller burn grace reductions on milestone levels

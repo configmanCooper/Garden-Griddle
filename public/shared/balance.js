@@ -70,14 +70,14 @@
   }
 
   function recipeCountForLevel(level) {
-    if (level <= 5) return 3;
-    if (level <= 10) return 4;
-    if (level <= 15) return 5;
-    if (level <= 20) return 6;
-    if (level <= 25) return 7;
-    if (level <= 30) return 8;
-    if (level <= 40) return 9;
-    return 10;
+    if (level === 1) return 3;
+    return Math.min(10, 4 + Math.floor((level - 2) / 4));
+  }
+
+  function difficultyProgress(levelNumber) {
+    const level = clamp(Math.floor(Number(levelNumber) || 1), 1, C.MAX_LEVEL);
+    const raw = (level - 1) / (C.MAX_LEVEL - 1);
+    return raw <= 0 ? 0 : Math.pow(raw, 0.55);
   }
 
   function milestoneForLevel(level) {
@@ -98,7 +98,7 @@
   function makeLevel(levelNumber, playerCount, intervalScale) {
     const level = clamp(Math.floor(Number(levelNumber) || 1), 1, C.MAX_LEVEL);
     const players = clamp(Math.floor(Number(playerCount) || 2), 1, 2);
-    const t = (level - 1) / (C.MAX_LEVEL - 1);
+    const t = difficultyProgress(level);
     const milestone = milestoneForLevel(level);
     const originalPrepSeconds = lerp(15, 8, t);
     let orderInterval = lerp(12, 4.5, t);
@@ -129,7 +129,7 @@
       orderInterval: Number(orderInterval.toFixed(3)),
       patience: Number((lerp(40, 18, t) * 1.2).toFixed(3)),
       prepSeconds,
-      queueCap: Math.min(8, 3 + Math.floor((level - 1) / 8)),
+      queueCap: Math.min(8, 3 + Math.floor(t * 6)),
       daySeconds: DAY_SECONDS,
       noSpawnFinalSeconds: NO_SPAWN_FINAL_SECONDS,
       playerCount: players
@@ -286,6 +286,7 @@
     UPGRADE_COSTS,
     UPGRADES,
     compileLevel,
+    difficultyProgress,
     effectsFor,
     upgradeCost,
     purchaseUpgrade,
